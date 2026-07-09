@@ -905,6 +905,16 @@ namespace VMFramework.MCP.Editor
             }
             catch (Exception ex)
             {
+                if (config.useDefaultPanelSettings &&
+                    GetGamePrefabGeneralSetting(typeof(UIPanelConfig)) is UIPanelGeneralSetting setting)
+                {
+                    string defaultPanelSettingsPath = GetAssetPath(setting.panelSettings);
+                    if (string.IsNullOrWhiteSpace(defaultPanelSettingsPath) == false)
+                    {
+                        return defaultPanelSettingsPath;
+                    }
+                }
+
                 return $"<unavailable: {ex.GetType().Name}>";
             }
         }
