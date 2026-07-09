@@ -97,7 +97,8 @@ namespace VMFramework.MCP.Editor
 
         [MCPProjectTool(LIST_GAME_PREFAB_TYPES_TOOL_NAME,
             Description = "List VMFramework GamePrefab types and their matching GamePrefabGeneralSetting.",
-            InputSchemaJson = LIST_GAME_PREFAB_TYPES_INPUT_SCHEMA_JSON)]
+            InputSchemaJson = LIST_GAME_PREFAB_TYPES_INPUT_SCHEMA_JSON,
+            ReadOnly = true)]
         public static object ListGamePrefabTypes(Dictionary<string, object> args)
         {
             args ??= new();
@@ -134,7 +135,8 @@ namespace VMFramework.MCP.Editor
 
         [MCPProjectTool(ADD_GAME_PREFAB_TOOL_NAME,
             Description = "Create or replace a VMFramework GamePrefab wrapper by id and register it to the matching GamePrefabGeneralSetting.",
-            InputSchemaJson = ADD_GAME_PREFAB_INPUT_SCHEMA_JSON)]
+            InputSchemaJson = ADD_GAME_PREFAB_INPUT_SCHEMA_JSON,
+            MutatesAssets = true)]
         public static object AddGamePrefab(Dictionary<string, object> args)
         {
             args ??= new();
@@ -212,7 +214,8 @@ namespace VMFramework.MCP.Editor
 
         [MCPProjectTool(FIND_GAME_PREFAB_TOOL_NAME,
             Description = "Find VMFramework GamePrefabs by id, type, wrapper path, or filter.",
-            InputSchemaJson = FIND_GAME_PREFAB_INPUT_SCHEMA_JSON)]
+            InputSchemaJson = FIND_GAME_PREFAB_INPUT_SCHEMA_JSON,
+            ReadOnly = true)]
         public static object FindGamePrefab(Dictionary<string, object> args)
         {
             args ??= new();
@@ -233,7 +236,8 @@ namespace VMFramework.MCP.Editor
 
         [MCPProjectTool(INSPECT_GAME_PREFAB_WRAPPER_TOOL_NAME,
             Description = "Inspect VMFramework GamePrefabWrapper assets and the GamePrefabs they contain.",
-            InputSchemaJson = INSPECT_GAME_PREFAB_WRAPPER_INPUT_SCHEMA_JSON)]
+            InputSchemaJson = INSPECT_GAME_PREFAB_WRAPPER_INPUT_SCHEMA_JSON,
+            ReadOnly = true)]
         public static object InspectGamePrefabWrapper(Dictionary<string, object> args)
         {
             args ??= new();
@@ -275,7 +279,8 @@ namespace VMFramework.MCP.Editor
 
         [MCPProjectTool(LIST_GENERAL_SETTINGS_TOOL_NAME,
             Description = "List VMFramework GeneralSetting assets currently discoverable from global settings and the general settings asset folder.",
-            InputSchemaJson = LIST_GENERAL_SETTINGS_INPUT_SCHEMA_JSON)]
+            InputSchemaJson = LIST_GENERAL_SETTINGS_INPUT_SCHEMA_JSON,
+            ReadOnly = true)]
         public static object ListGeneralSettings(Dictionary<string, object> args)
         {
             args ??= new();
@@ -310,7 +315,8 @@ namespace VMFramework.MCP.Editor
 
         [MCPProjectTool(INSPECT_UI_PANEL_TOOL_NAME,
             Description = "Inspect a VMFramework UI panel prefab/config, UIDocument, VisualTreeAsset, modifiers, bind object names, and optional runtime state.",
-            InputSchemaJson = PANEL_SOURCE_INPUT_SCHEMA_JSON)]
+            InputSchemaJson = PANEL_SOURCE_INPUT_SCHEMA_JSON,
+            ReadOnly = true)]
         public static object InspectUIPanel(Dictionary<string, object> args)
         {
             args ??= new();
@@ -328,7 +334,8 @@ namespace VMFramework.MCP.Editor
 
         [MCPProjectTool(INSPECT_BIND_OBJECTS_TOOL_NAME,
             Description = "Inspect VMFramework BindObjectsManager names, single-mode names, providers, and optional runtime bound object counts for a UI panel.",
-            InputSchemaJson = PANEL_SOURCE_INPUT_SCHEMA_JSON)]
+            InputSchemaJson = PANEL_SOURCE_INPUT_SCHEMA_JSON,
+            ReadOnly = true)]
         public static object InspectBindObjects(Dictionary<string, object> args)
         {
             args ??= new();
@@ -338,7 +345,8 @@ namespace VMFramework.MCP.Editor
 
         [MCPProjectTool(VALIDATE_VISUAL_ELEMENT_PATHS_TOOL_NAME,
             Description = "Validate VisualElementPath fields on a VMFramework UI panel prefab against its UIDocument VisualTreeAsset.",
-            InputSchemaJson = VALIDATE_VISUAL_ELEMENT_PATHS_INPUT_SCHEMA_JSON)]
+            InputSchemaJson = VALIDATE_VISUAL_ELEMENT_PATHS_INPUT_SCHEMA_JSON,
+            ReadOnly = true)]
         public static object ValidateVisualElementPaths(Dictionary<string, object> args)
         {
             args ??= new();
@@ -403,7 +411,8 @@ namespace VMFramework.MCP.Editor
 
         [MCPProjectTool(INSPECT_CONTAINER_PANEL_TOOL_NAME,
             Description = "Inspect VMFramework UIToolkitContainerModifierBase components, bind object names, slot distributor configs, and optional runtime slot/container state.",
-            InputSchemaJson = PANEL_SOURCE_INPUT_SCHEMA_JSON)]
+            InputSchemaJson = PANEL_SOURCE_INPUT_SCHEMA_JSON,
+            ReadOnly = true)]
         public static object InspectContainerPanel(Dictionary<string, object> args)
         {
             args ??= new();
@@ -425,7 +434,8 @@ namespace VMFramework.MCP.Editor
 
         [MCPProjectTool(INSPECT_PROPERTY_MANAGER_TOOL_NAME,
             Description = "Inspect VMFramework PropertyManager components on a prefab, selected GameObjects, a scene GameObject path, or loaded scenes.",
-            InputSchemaJson = INSPECT_PROPERTY_MANAGER_INPUT_SCHEMA_JSON)]
+            InputSchemaJson = INSPECT_PROPERTY_MANAGER_INPUT_SCHEMA_JSON,
+            ReadOnly = true)]
         public static object InspectPropertyManager(Dictionary<string, object> args)
         {
             args ??= new();
