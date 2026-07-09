@@ -582,8 +582,8 @@ namespace VMFramework.MCP.Editor
         {
             string wrapperPath = GetAssetPath(wrapper);
 
-            ForceSerializeOdinObject(wrapper);
-            ForceSerializeOdinObject(gamePrefabGeneralSetting);
+            EditorUtility.SetDirty(wrapper);
+            EditorUtility.SetDirty(gamePrefabGeneralSetting);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
@@ -594,25 +594,6 @@ namespace VMFramework.MCP.Editor
 
             GamePrefabWrapperInitializeUtility.Refresh();
             return wrapper;
-        }
-
-        private static void ForceSerializeOdinObject(Object obj)
-        {
-            if (obj == null)
-            {
-                return;
-            }
-
-            var field = typeof(Sirenix.OdinInspector.SerializedScriptableObject).GetField("serializationData",
-                BindingFlags.Instance | BindingFlags.NonPublic);
-            if (field != null && obj is Sirenix.OdinInspector.SerializedScriptableObject)
-            {
-                var data = (Sirenix.Serialization.SerializationData)field.GetValue(obj);
-                Sirenix.Serialization.UnitySerializationUtility.SerializeUnityObject(obj, ref data, true, null);
-                field.SetValue(obj, data);
-            }
-
-            EditorUtility.SetDirty(obj);
         }
 
         private static void ValidateWrapperContainsGamePrefab(GamePrefabWrapper wrapper, string id)
