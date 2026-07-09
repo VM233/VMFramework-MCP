@@ -889,12 +889,24 @@ namespace VMFramework.MCP.Editor
             {
                 result["useDefaultPanelSettings"] = toolkitConfig.useDefaultPanelSettings;
                 result["customPanelSettingsPath"] = GetAssetPath(toolkitConfig.customPanelSettings);
-                result["panelSettingsPath"] = GetAssetPath(toolkitConfig.PanelSettings);
+                result["panelSettingsPath"] = GetSafePanelSettingsPath(toolkitConfig);
                 result["ignoreMouseEvents"] = toolkitConfig.ignoreMouseEvents;
                 result["closeMode"] = toolkitConfig.closeMode.ToString();
             }
 
             return result;
+        }
+
+        private static string GetSafePanelSettingsPath(UIToolkitPanelConfig config)
+        {
+            try
+            {
+                return GetAssetPath(config.PanelSettings);
+            }
+            catch (Exception ex)
+            {
+                return $"<unavailable: {ex.GetType().Name}>";
+            }
         }
 
         private static Dictionary<string, object> DescribePanelPrefab(GameObject prefab)
@@ -1242,7 +1254,7 @@ namespace VMFramework.MCP.Editor
             }
 
             Type targetType = target.GetType();
-            if (ShouldRecurseInto(targetType) == false)
+            if (ShouldRecurseInto(targetType, allowUnityObjectRoot: depth == 0) == false)
             {
                 return;
             }
@@ -1317,7 +1329,10 @@ namespace VMFramework.MCP.Editor
         {
             for (var current = type; current != null && current != typeof(object); current = current.BaseType)
             {
-                if (typeof(Object).IsAssignableFrom(current) && current != type)
+                if (current == typeof(MonoBehaviour) ||
+                    current == typeof(Behaviour) ||
+                    current == typeof(Component) ||
+                    current == typeof(Object))
                 {
                     yield break;
                 }
@@ -1338,12 +1353,17 @@ namespace VMFramework.MCP.Editor
             }
         }
 
-        private static bool ShouldRecurseInto(Type type)
+        private static bool ShouldRecurseInto(Type type, bool allowUnityObjectRoot = false)
         {
             if (type == null || type.IsPrimitive || type.IsEnum || type == typeof(string) ||
-                type == typeof(decimal) || typeof(Object).IsAssignableFrom(type))
+                type == typeof(decimal))
             {
                 return false;
+            }
+
+            if (typeof(Object).IsAssignableFrom(type))
+            {
+                return allowUnityObjectRoot && typeof(Component).IsAssignableFrom(type);
             }
 
             if (type == typeof(VisualElementPath))
@@ -1352,9 +1372,16 @@ namespace VMFramework.MCP.Editor
             }
 
             string ns = type.Namespace ?? "";
-            return ns.StartsWith("VMFramework", StringComparison.Ordinal) ||
-                   ns.StartsWith("ImpartZoo", StringComparison.Ordinal) ||
-                   type.GetCustomAttribute<SerializableAttribute>() != null;
+            if (ns.StartsWith("System", StringComparison.Ordinal) ||
+                ns.StartsWith("Unity", StringComparison.Ordinal) ||
+                ns.StartsWith("Microsoft", StringComparison.Ordinal) ||
+                ns.StartsWith("Sirenix", StringComparison.Ordinal) ||
+                ns.StartsWith("Newtonsoft", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            return ns.Length > 0 || type.GetCustomAttribute<SerializableAttribute>() != null;
         }
 
         private static List<Type> GetAllowedTypes(VisualElementPathSettingsAttribute settings)
