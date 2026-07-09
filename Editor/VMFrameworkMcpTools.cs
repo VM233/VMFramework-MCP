@@ -520,11 +520,6 @@ namespace VMFramework.MCP.Editor
                 ApplySerializedValues(gamePrefab, serializedValues);
             }
 
-            if (gamePrefab is IInspectorConfig inspectorConfig)
-            {
-                inspectorConfig.OnInspectorInit();
-            }
-
             if (gamePrefab is GamePrefab typedPrefab)
             {
                 if (typedPrefab.IsIDStartsWithPrefix == false)
