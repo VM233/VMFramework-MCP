@@ -1532,22 +1532,51 @@ namespace VMFramework.MCP.Editor
 
             if (includeGamePrefabDetails && setting is GamePrefabGeneralSetting gamePrefabSetting)
             {
+                var providers = DescribeGamePrefabProviders(gamePrefabSetting.initialGamePrefabProviders,
+                    out int providerSlotCount, out int missingProviderCount);
+
                 result["gamePrefabName"] = gamePrefabSetting.GamePrefabName;
                 result["baseGamePrefabType"] = gamePrefabSetting.BaseGamePrefabType.FullName;
                 result["gamePrefabFolderPath"] = gamePrefabSetting.GamePrefabFolderPath;
-                result["initialGamePrefabProviderCount"] = gamePrefabSetting.initialGamePrefabProviders.Count;
-                result["initialGamePrefabProviders"] = gamePrefabSetting.initialGamePrefabProviders
-                    .OfType<Object>()
-                    .Select(provider => new Dictionary<string, object>
-                    {
-                        { "name", provider.name },
-                        { "type", provider.GetType().FullName },
-                        { "path", GetAssetPath(provider) }
-                    })
-                    .ToList();
+                result["initialGamePrefabProviderSlotCount"] = providerSlotCount;
+                result["initialGamePrefabProviderCount"] = providers.Count;
+                result["missingInitialGamePrefabProviderCount"] = missingProviderCount;
+                result["initialGamePrefabProviders"] = providers;
             }
 
             return result;
+        }
+
+        private static List<Dictionary<string, object>> DescribeGamePrefabProviders(
+            IEnumerable<IGamePrefabsProvider> rawProviders, out int providerSlotCount, out int missingProviderCount)
+        {
+            var providers = new List<Dictionary<string, object>>();
+            providerSlotCount = 0;
+            missingProviderCount = 0;
+
+            if (rawProviders == null)
+            {
+                return providers;
+            }
+
+            foreach (var rawProvider in rawProviders)
+            {
+                providerSlotCount++;
+                if (rawProvider is not Object provider || provider == null)
+                {
+                    missingProviderCount++;
+                    continue;
+                }
+
+                providers.Add(new Dictionary<string, object>
+                {
+                    { "name", provider.name },
+                    { "type", provider.GetType().FullName },
+                    { "path", GetAssetPath(provider) }
+                });
+            }
+
+            return providers;
         }
 
         private static Dictionary<string, object> DescribeComponent(Component component)
