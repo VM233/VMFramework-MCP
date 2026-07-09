@@ -1,0 +1,20 @@
+{
+  "name": "VMFramework.MCP.Editor",
+  "rootNamespace": "VMFramework.MCP.Editor",
+  "references": [
+    "AnkleBreaker.UnityMCP.Editor",
+    "VMCore",
+    "VMFramework"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
