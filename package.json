@@ -15,6 +15,7 @@
   "type": "tool",
   "dependencies": {
     "com.anklebreaker.unity-mcp": "2.32.0",
+    "com.vm233.vm-odin-extensions": "1.0.0",
     "com.vm233.vmcore": "1.0.1",
     "com.vm233.vmframework": "1.0.0"
   },

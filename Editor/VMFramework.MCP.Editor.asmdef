@@ -4,6 +4,7 @@
   "references": [
     "AnkleBreaker.UnityMCP.Editor",
     "VMCore",
+    "VMOdinExtensions",
     "VMFramework"
   ],
   "includePlatforms": [
