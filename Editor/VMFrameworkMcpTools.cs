@@ -197,7 +197,8 @@ namespace VMFramework.MCP.Editor
             }
 
             RegisterWrapper(gamePrefabGeneralSetting, wrapper);
-            SaveAndRefresh(wrapper, gamePrefabGeneralSetting);
+            wrapper = SaveAndRefresh(wrapper, gamePrefabGeneralSetting);
+            ValidateWrapperContainsGamePrefab(wrapper, id);
 
             return new Dictionary<string, object>
             {
@@ -576,13 +577,55 @@ namespace VMFramework.MCP.Editor
             targetSetting.AddToInitialGamePrefabProviders(wrapper);
         }
 
-        private static void SaveAndRefresh(GamePrefabWrapper wrapper, GamePrefabGeneralSetting gamePrefabGeneralSetting)
+        private static GamePrefabWrapper SaveAndRefresh(GamePrefabWrapper wrapper,
+            GamePrefabGeneralSetting gamePrefabGeneralSetting)
         {
-            EditorUtility.SetDirty(wrapper);
-            EditorUtility.SetDirty(gamePrefabGeneralSetting);
+            string wrapperPath = GetAssetPath(wrapper);
+
+            ForceSerializeOdinObject(wrapper);
+            ForceSerializeOdinObject(gamePrefabGeneralSetting);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+
+            if (string.IsNullOrWhiteSpace(wrapperPath) == false)
+            {
+                wrapper = AssetDatabase.LoadAssetAtPath<GamePrefabWrapper>(wrapperPath) ?? wrapper;
+            }
+
             GamePrefabWrapperInitializeUtility.Refresh();
+            return wrapper;
+        }
+
+        private static void ForceSerializeOdinObject(Object obj)
+        {
+            if (obj == null)
+            {
+                return;
+            }
+
+            var field = typeof(Sirenix.OdinInspector.SerializedScriptableObject).GetField("serializationData",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field != null && obj is Sirenix.OdinInspector.SerializedScriptableObject)
+            {
+                var data = (Sirenix.Serialization.SerializationData)field.GetValue(obj);
+                Sirenix.Serialization.UnitySerializationUtility.SerializeUnityObject(obj, ref data, true, null);
+                field.SetValue(obj, data);
+            }
+
+            EditorUtility.SetDirty(obj);
+        }
+
+        private static void ValidateWrapperContainsGamePrefab(GamePrefabWrapper wrapper, string id)
+        {
+            var gamePrefabs = GetGamePrefabs(wrapper);
+            if (gamePrefabs.Any(gamePrefab => gamePrefab != null &&
+                                              string.Equals(gamePrefab.id, id, StringComparison.Ordinal)))
+            {
+                return;
+            }
+
+            throw new InvalidOperationException(
+                $"GamePrefab wrapper '{GetAssetPath(wrapper)}' was saved but does not contain GamePrefab id '{id}'.");
         }
 
         private static GamePrefabGeneralSetting ResolveGamePrefabGeneralSetting(IGamePrefab gamePrefab)
