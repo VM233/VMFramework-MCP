@@ -583,6 +583,7 @@ namespace VMFramework.MCP.Editor
         private static object DescribeLeaf(object value)
         {
             if (value == null || value is string || value.GetType().IsPrimitive || value.GetType().IsEnum) return value;
+            if (value is IDictionary || value is IEnumerable && value is not string) return value;
             if (value is Object unityObject) return AssetDatabase.GetAssetPath(unityObject);
             return value.ToString();
         }
