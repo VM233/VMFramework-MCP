@@ -511,7 +511,7 @@ namespace VMFramework.MCP.Editor
             }
 
             var result = new Dictionary<string, object> { { "$type", type.FullName } };
-            foreach (var field in GetSerializableFields(type))
+            foreach (var field in GetGamePrefabSerializableFields(type))
             {
                 object fieldValue;
                 try { fieldValue = field.GetValue(value); }
@@ -522,7 +522,7 @@ namespace VMFramework.MCP.Editor
             return result;
         }
 
-        private static IEnumerable<FieldInfo> GetSerializableFields(Type type)
+        private static IEnumerable<FieldInfo> GetGamePrefabSerializableFields(Type type)
         {
             var names = new HashSet<string>();
             for (var current = type; current != null && current != typeof(object); current = current.BaseType)
