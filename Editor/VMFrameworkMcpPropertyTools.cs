@@ -137,8 +137,10 @@ namespace VMFramework.MCP.Editor
             ReadOnly = true)]
         public static object StopPropertyTrace(Dictionary<string, object> args)
         {
-            var result = DescribePropertyTrace("stop");
+            var stoppedTargetCount = propertyTraceTargets.Count;
             StopPropertyTraceInternal();
+            var result = DescribePropertyTrace("stop");
+            result["stoppedTargetCount"] = stoppedTargetCount;
             return result;
         }
 
