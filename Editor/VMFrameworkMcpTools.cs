@@ -21,7 +21,7 @@ using Object = UnityEngine.Object;
 
 namespace VMFramework.MCP.Editor
 {
-    public static class VMFrameworkMcpTools
+    public static partial class VMFrameworkMcpTools
     {
         private const string LIST_GAME_PREFAB_TYPES_TOOL_NAME = "vmframework/list-game-prefab-types";
         private const string ADD_GAME_PREFAB_TOOL_NAME = "vmframework/add-game-prefab";
