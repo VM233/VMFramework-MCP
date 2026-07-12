@@ -1239,13 +1239,23 @@ namespace VMFramework.MCP.Editor
                 { "owner", record.owner },
                 { "member", record.member },
                 { "path", joinedPath },
+                { "required", record.required },
                 { "expectedTypes", record.allowedTypes.Select(type => type.Name).ToArray() }
             };
 
             if (record.path == null || names.Count == 0)
             {
-                result["valid"] = false;
-                result["error"] = "VisualElementPath is empty.";
+                result["valid"] = record.required == false;
+                if (record.required)
+                {
+                    result["error"] = "Required VisualElementPath is empty.";
+                }
+                else
+                {
+                    result["skipped"] = true;
+                    result["reason"] = "Optional VisualElementPath is empty.";
+                }
+
                 return result;
             }
 
@@ -1315,6 +1325,7 @@ namespace VMFramework.MCP.Editor
                         owner = owner,
                         member = member,
                         path = path,
+                        required = IsVisualElementPathRequired(field),
                         allowedTypes = GetAllowedTypes(settings)
                     });
                     continue;
@@ -1332,6 +1343,7 @@ namespace VMFramework.MCP.Editor
                                 owner = owner,
                                 member = $"{member}[{index}]",
                                 path = itemPath,
+                                required = IsVisualElementPathRequired(field),
                                 allowedTypes = GetAllowedTypes(settings)
                             });
                         }
@@ -1352,6 +1364,11 @@ namespace VMFramework.MCP.Editor
 
                 ScanVisualElementPaths(value, owner, records, visited, depth + 1, settings);
             }
+        }
+
+        private static bool IsVisualElementPathRequired(FieldInfo field)
+        {
+            return field.IsDefined(typeof(IsNotNullOrEmptyAttribute), true);
         }
 
         private static IEnumerable<FieldInfo> GetSerializableFields(Type type)
@@ -2098,6 +2115,7 @@ namespace VMFramework.MCP.Editor
             public string owner;
             public string member;
             public VisualElementPath path;
+            public bool required;
             public List<Type> allowedTypes;
         }
 

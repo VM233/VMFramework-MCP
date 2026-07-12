@@ -1,0 +1,22 @@
+{
+  "name": "VMFramework.MCP.Editor.Tests",
+  "rootNamespace": "VMFramework.MCP.Editor.Tests",
+  "references": [
+    "VMFramework.MCP.Editor",
+    "VMOdinExtensions"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

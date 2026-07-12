@@ -1,6 +1,6 @@
 {
   "name": "com.vm233.vmframework-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "VMFramework MCP",
   "description": "First-class Unity MCP project tools for inspecting and editing VMFramework assets, UI panels, bind objects, containers, and properties.",
   "unity": "6000.4",
