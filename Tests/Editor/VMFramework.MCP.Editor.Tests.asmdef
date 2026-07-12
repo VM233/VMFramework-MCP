@@ -4,7 +4,8 @@
   "references": [
     "VMFramework.MCP.Editor",
     "VMFramework",
-    "VMOdinExtensions"
+    "VMOdinExtensions",
+    "Unity.Localization"
   ],
   "includePlatforms": [
     "Editor"

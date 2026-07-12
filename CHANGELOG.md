@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2
+
+- Convert structured object dictionaries before enumerable values so LocalizedString and other serialized objects that implement IEnumerable are updated correctly.
+
 ## 1.0.1
 
 - Treat empty VisualElementPath fields as valid when they are optional, while preserving errors for fields marked with IsNotNullOrEmpty.

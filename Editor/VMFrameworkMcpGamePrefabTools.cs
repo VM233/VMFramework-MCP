@@ -413,24 +413,6 @@ namespace VMFramework.MCP.Editor
                 return Convert.ChangeType(value, targetType, CultureInfo.InvariantCulture);
             }
 
-            if (value is IEnumerable enumerable && value is not string && typeof(IEnumerable).IsAssignableFrom(targetType))
-            {
-                var elementType = GetCollectionElementType(targetType);
-                var converted = enumerable.Cast<object>().Select(item => ConvertSerializedValue(item, elementType, path)).ToList();
-                if (targetType.IsArray)
-                {
-                    var array = Array.CreateInstance(elementType, converted.Count);
-                    for (var i = 0; i < converted.Count; i++) array.SetValue(converted[i], i);
-                    return array;
-                }
-
-                var list = (IList)(targetType.IsInterface || targetType.IsAbstract
-                    ? Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))
-                    : Activator.CreateInstance(targetType));
-                foreach (var item in converted) list.Add(item);
-                return list;
-            }
-
             if (value is Dictionary<string, object> objectValues)
             {
                 var concreteType = targetType;
@@ -451,6 +433,24 @@ namespace VMFramework.MCP.Editor
                 }
 
                 return instance;
+            }
+
+            if (value is IEnumerable enumerable && value is not string && typeof(IEnumerable).IsAssignableFrom(targetType))
+            {
+                var elementType = GetCollectionElementType(targetType);
+                var converted = enumerable.Cast<object>().Select(item => ConvertSerializedValue(item, elementType, path)).ToList();
+                if (targetType.IsArray)
+                {
+                    var array = Array.CreateInstance(elementType, converted.Count);
+                    for (var i = 0; i < converted.Count; i++) array.SetValue(converted[i], i);
+                    return array;
+                }
+
+                var list = (IList)(targetType.IsInterface || targetType.IsAbstract
+                    ? Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))
+                    : Activator.CreateInstance(targetType));
+                foreach (var item in converted) list.Add(item);
+                return list;
             }
 
             throw new InvalidOperationException($"Cannot convert '{path}' to '{targetType.FullName}'.");
