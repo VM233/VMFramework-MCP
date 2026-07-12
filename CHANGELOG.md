@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3
+
+- Added HashSet and generic ICollection support to GamePrefab collection conversion, append, remove, clear, and indexed replacement operations.
+
 ## 1.0.2
 
 - Convert structured object dictionaries before enumerable values so LocalizedString and other serialized objects that implement IEnumerable are updated correctly.

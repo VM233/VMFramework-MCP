@@ -54,7 +54,7 @@ namespace VMFramework.MCP.Editor
         }
 
         [MCPProjectTool(UPDATE_GAME_PREFAB_TOOL_NAME,
-            Description = "Atomically update an existing GamePrefab inside its Wrapper with nested paths, list/array edits, Unity asset references, Odin-serialized objects, and before/after diff.",
+            Description = "Atomically update an existing GamePrefab inside its Wrapper with nested paths, list/array/set edits, Unity asset references, Odin-serialized objects, and before/after diff.",
             InputSchemaJson = UPDATE_GAME_PREFAB_SCHEMA,
             MutatesAssets = true)]
         public static object UpdateGamePrefab(Dictionary<string, object> args)
@@ -245,7 +245,14 @@ namespace VMFramework.MCP.Editor
 
             if (collection is not IList list)
             {
-                throw new InvalidOperationException($"'{path}' is not a List or Array.");
+                if (index != int.MaxValue)
+                {
+                    throw new InvalidOperationException(
+                        $"'{path}' is an unordered collection and does not support indexed insert.");
+                }
+
+                AddCollectionItem(collection, converted, elementType, path);
+                return;
             }
 
             if (index == int.MaxValue)
@@ -281,12 +288,20 @@ namespace VMFramework.MCP.Editor
                 return;
             }
 
-            if (collection is not IList list || index < 0 || index >= list.Count)
+            if (collection is IList list)
             {
-                throw new IndexOutOfRangeException($"Index {index} is invalid for '{path}'.");
+                if (index < 0 || index >= list.Count)
+                {
+                    throw new IndexOutOfRangeException($"Index {index} is invalid for '{path}'.");
+                }
+
+                list.RemoveAt(index);
+                return;
             }
 
-            list.RemoveAt(index);
+            var elementType = GetCollectionElementType(collection.GetType());
+            var item = GetCollectionItem(collection, index, path);
+            RemoveCollectionItem(collection, item, elementType, path);
         }
 
         private static void ClearCollection(object root, string path)
@@ -302,7 +317,7 @@ namespace VMFramework.MCP.Editor
             }
             else
             {
-                throw new InvalidOperationException($"'{path}' is not a List or Array.");
+                ClearCollectionItems(collection, GetCollectionElementType(collection.GetType()), path);
             }
         }
 
@@ -446,11 +461,13 @@ namespace VMFramework.MCP.Editor
                     return array;
                 }
 
-                var list = (IList)(targetType.IsInterface || targetType.IsAbstract
-                    ? Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))
-                    : Activator.CreateInstance(targetType));
-                foreach (var item in converted) list.Add(item);
-                return list;
+                var collection = CreateCollectionInstance(targetType, elementType, path);
+                foreach (var item in converted)
+                {
+                    AddCollectionItem(collection, item, elementType, path);
+                }
+
+                return collection;
             }
 
             throw new InvalidOperationException($"Cannot convert '{path}' to '{targetType.FullName}'.");
@@ -590,25 +607,120 @@ namespace VMFramework.MCP.Editor
 
         private static object GetListItem(object collection, int index, string path)
         {
-            if (collection is not IList list || index < 0 || index >= list.Count)
-                throw new IndexOutOfRangeException($"Index {index} is invalid in '{path}'.");
-            return list[index];
+            return GetCollectionItem(collection, index, path);
         }
 
         private static void SetListItem(object collection, int index, object rawValue, string path)
         {
-            if (collection is not IList list || index < 0 || index >= list.Count)
-                throw new IndexOutOfRangeException($"Index {index} is invalid in '{path}'.");
-            list[index] = ConvertSerializedValue(rawValue, GetCollectionElementType(collection.GetType()), path);
+            var elementType = GetCollectionElementType(collection.GetType());
+            var converted = ConvertSerializedValue(rawValue, elementType, path);
+            if (collection is IList list)
+            {
+                if (index < 0 || index >= list.Count)
+                    throw new IndexOutOfRangeException($"Index {index} is invalid in '{path}'.");
+                list[index] = converted;
+                return;
+            }
+
+            var previous = GetCollectionItem(collection, index, path);
+            RemoveCollectionItem(collection, previous, elementType, path);
+            AddCollectionItem(collection, converted, elementType, path);
         }
 
         private static Type GetCollectionElementType(Type type)
         {
             if (type.IsArray) return type.GetElementType();
-            var generic = type.IsGenericType ? type : type.GetInterfaces()
-                .FirstOrDefault(candidate => candidate.IsGenericType &&
-                                             candidate.GetGenericTypeDefinition() == typeof(IList<>));
+            var generic = type.IsGenericType && type.GetGenericArguments().Length == 1
+                ? type
+                : type.GetInterfaces().FirstOrDefault(candidate => candidate.IsGenericType &&
+                    (candidate.GetGenericTypeDefinition() == typeof(ICollection<>) ||
+                     candidate.GetGenericTypeDefinition() == typeof(IEnumerable<>)));
             return generic?.GetGenericArguments()[0] ?? typeof(object);
+        }
+
+        private static object CreateCollectionInstance(Type targetType, Type elementType, string path)
+        {
+            if (targetType.IsInterface || targetType.IsAbstract)
+            {
+                bool isSet = targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(ISet<>) ||
+                             targetType.GetInterfaces().Any(candidate => candidate.IsGenericType &&
+                                 candidate.GetGenericTypeDefinition() == typeof(ISet<>));
+                return Activator.CreateInstance((isSet ? typeof(HashSet<>) : typeof(List<>))
+                    .MakeGenericType(elementType));
+            }
+
+            try
+            {
+                return Activator.CreateInstance(targetType);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"Collection '{path}' of type '{targetType.FullName}' requires a parameterless constructor.", ex);
+            }
+        }
+
+        private static object GetCollectionItem(object collection, int index, string path)
+        {
+            if (collection is IList list)
+            {
+                if (index < 0 || index >= list.Count)
+                    throw new IndexOutOfRangeException($"Index {index} is invalid in '{path}'.");
+                return list[index];
+            }
+
+            if (index < 0 || collection is not IEnumerable enumerable)
+                throw new IndexOutOfRangeException($"Index {index} is invalid in '{path}'.");
+
+            var currentIndex = 0;
+            foreach (var item in enumerable)
+            {
+                if (currentIndex == index) return item;
+                currentIndex++;
+            }
+
+            throw new IndexOutOfRangeException($"Index {index} is invalid in '{path}'.");
+        }
+
+        private static void AddCollectionItem(object collection, object item, Type elementType, string path)
+        {
+            if (collection is IList list)
+            {
+                list.Add(item);
+                return;
+            }
+
+            InvokeGenericCollectionMethod(collection, elementType, "Add", new[] { item }, path);
+        }
+
+        private static void RemoveCollectionItem(object collection, object item, Type elementType, string path)
+        {
+            InvokeGenericCollectionMethod(collection, elementType, "Remove", new[] { item }, path);
+        }
+
+        private static void ClearCollectionItems(object collection, Type elementType, string path)
+        {
+            InvokeGenericCollectionMethod(collection, elementType, "Clear", Array.Empty<object>(), path);
+        }
+
+        private static object InvokeGenericCollectionMethod(object collection, Type elementType,
+            string methodName, object[] arguments, string path)
+        {
+            var collectionInterface = typeof(ICollection<>).MakeGenericType(elementType);
+            if (!collectionInterface.IsInstanceOfType(collection))
+            {
+                throw new InvalidOperationException(
+                    $"'{path}' of type '{collection.GetType().FullName}' is not a writable collection.");
+            }
+
+            try
+            {
+                return collectionInterface.GetMethod(methodName).Invoke(collection, arguments);
+            }
+            catch (TargetInvocationException ex)
+            {
+                throw ex.InnerException ?? ex;
+            }
         }
 
         private static List<PathSegment> ParsePath(string path)
