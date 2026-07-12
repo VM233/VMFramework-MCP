@@ -3,6 +3,7 @@
   "rootNamespace": "VMFramework.MCP.Editor.Tests",
   "references": [
     "VMFramework.MCP.Editor",
+    "VMFramework",
     "VMOdinExtensions"
   ],
   "includePlatforms": [
