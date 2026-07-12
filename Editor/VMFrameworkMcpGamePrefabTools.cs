@@ -280,8 +280,8 @@ namespace VMFramework.MCP.Editor
                     throw new IndexOutOfRangeException($"Index {index} is invalid for '{path}'.");
                 }
 
-                var elementType = GetCollectionElementType(array.GetType());
-                var replacement = Array.CreateInstance(elementType, array.Length - 1);
+                var arrayElementType = GetCollectionElementType(array.GetType());
+                var replacement = Array.CreateInstance(arrayElementType, array.Length - 1);
                 Array.Copy(array, 0, replacement, 0, index);
                 Array.Copy(array, index + 1, replacement, index, array.Length - index - 1);
                 SetPathValue(root, path, replacement);
