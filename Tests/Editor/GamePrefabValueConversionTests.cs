@@ -16,6 +16,18 @@ namespace VMFramework.MCP.Editor.Tests
             public HashSet<string> gameTags = new();
         }
 
+        private struct RangeFixture
+        {
+            public int min;
+            public int max;
+        }
+
+        private sealed class NestedValueFixture
+        {
+            public RangeFixture monsterCountRangePerWave;
+            public List<RangeFixture> ranges = new();
+        }
+
         [Test]
         public void StructuredLocalizedString_IsConvertedBeforeEnumerableHandling()
         {
@@ -112,6 +124,34 @@ namespace VMFramework.MCP.Editor.Tests
 
             clear.Invoke(null, new object[] { fixture, "gameTags" });
             Assert.That(fixture.gameTags, Is.Empty);
+        }
+
+        [Test]
+        public void SetPathValue_WritesNestedValueTypeBackToOwner()
+        {
+            var fixture = new NestedValueFixture
+            {
+                monsterCountRangePerWave = new RangeFixture { min = 3, max = 4 },
+            };
+            MethodInfo setPath = GetPrivateMethod("SetPathValue");
+
+            setPath.Invoke(null, new object[] { fixture, "monsterCountRangePerWave.min", 6 });
+
+            Assert.That(fixture.monsterCountRangePerWave.min, Is.EqualTo(6));
+            Assert.That(fixture.monsterCountRangePerWave.max, Is.EqualTo(4));
+        }
+
+        [Test]
+        public void SetPathValue_WritesValueTypeBackToCollectionSlot()
+        {
+            var fixture = new NestedValueFixture();
+            fixture.ranges.Add(new RangeFixture { min = 2, max = 5 });
+            MethodInfo setPath = GetPrivateMethod("SetPathValue");
+
+            setPath.Invoke(null, new object[] { fixture, "ranges[0].max", 9 });
+
+            Assert.That(fixture.ranges[0].min, Is.EqualTo(2));
+            Assert.That(fixture.ranges[0].max, Is.EqualTo(9));
         }
 
         private static MethodInfo GetPrivateMethod(string name)

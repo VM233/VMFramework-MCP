@@ -200,26 +200,47 @@ namespace VMFramework.MCP.Editor
                 throw new ArgumentException("path is empty.");
             }
 
-            object current = root;
-            for (var i = 0; i < segments.Count - 1; i++)
+            SetPathValueRecursive(root, segments, 0, rawValue, path);
+        }
+
+        private static object SetPathValueRecursive(object current, IReadOnlyList<PathSegment> segments,
+            int segmentIndex, object rawValue, string path)
+        {
+            var segment = segments[segmentIndex];
+            var isLast = segmentIndex == segments.Count - 1;
+            if (segment.Index.HasValue)
             {
-                current = GetMemberValue(current, segments[i].Name);
-                if (segments[i].Index.HasValue)
+                var collection = GetMemberValue(current, segment.Name);
+                if (isLast)
                 {
-                    current = GetListItem(current, segments[i].Index.Value, path);
+                    SetListItem(collection, segment.Index.Value, rawValue, path);
+                    return current;
                 }
+
+                var item = GetListItem(collection, segment.Index.Value, path);
+                var updatedItem = SetPathValueRecursive(item, segments, segmentIndex + 1, rawValue, path);
+                if ((item != null && item.GetType().IsValueType) || !ReferenceEquals(item, updatedItem))
+                {
+                    SetListItem(collection, segment.Index.Value, updatedItem, path);
+                }
+
+                return current;
             }
 
-            var last = segments[^1];
-            if (last.Index.HasValue)
+            if (isLast)
             {
-                var collection = GetMemberValue(current, last.Name);
-                SetListItem(collection, last.Index.Value, rawValue, path);
+                SetMemberValue(current, segment.Name, rawValue, path);
+                return current;
             }
-            else
+
+            var child = GetMemberValue(current, segment.Name);
+            var updatedChild = SetPathValueRecursive(child, segments, segmentIndex + 1, rawValue, path);
+            if ((child != null && child.GetType().IsValueType) || !ReferenceEquals(child, updatedChild))
             {
-                SetMemberValue(current, last.Name, rawValue, path);
+                SetMemberValue(current, segment.Name, updatedChild, path);
             }
+
+            return current;
         }
 
         private static void InsertCollectionValue(object root, string path, int index, object rawValue)
