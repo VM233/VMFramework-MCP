@@ -28,6 +28,11 @@ namespace VMFramework.MCP.Editor.Tests
             public List<RangeFixture> ranges = new();
         }
 
+        private sealed class LocalizedStringFixture
+        {
+            public LocalizedString name = new();
+        }
+
         [Test]
         public void StructuredLocalizedString_IsConvertedBeforeEnumerableHandling()
         {
@@ -64,10 +69,37 @@ namespace VMFramework.MCP.Editor.Tests
                 .GetField("m_TableEntryReference", BindingFlags.Instance | BindingFlags.NonPublic)
                 .GetValue(localizedString);
 
+            Assert.That(tableReference.TableCollectionName, Is.EqualTo("Item"));
+            Assert.That(entryReference.Key, Is.EqualTo("FlameIngotItemName"));
+
+            tableReference.OnBeforeSerialize();
             tableReference.OnAfterDeserialize();
+            entryReference.OnBeforeSerialize();
             entryReference.OnAfterDeserialize();
             Assert.That(tableReference.TableCollectionName, Is.EqualTo("Item"));
             Assert.That(entryReference.Key, Is.EqualTo("FlameIngotItemName"));
+        }
+
+        [Test]
+        public void SetPathValue_RefreshesNestedSerializationCallbackState()
+        {
+            var fixture = new LocalizedStringFixture();
+            MethodInfo setPath = GetPrivateMethod("SetPathValue");
+
+            setPath.Invoke(null, new object[]
+            {
+                fixture, "name.m_TableReference.m_TableCollectionName", "Property",
+            });
+
+            Type localizedReferenceType = typeof(LocalizedString).BaseType;
+            var tableReference = (TableReference)localizedReferenceType
+                .GetField("m_TableReference", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(fixture.name);
+
+            Assert.That(tableReference.TableCollectionName, Is.EqualTo("Property"));
+            tableReference.OnBeforeSerialize();
+            tableReference.OnAfterDeserialize();
+            Assert.That(tableReference.TableCollectionName, Is.EqualTo("Property"));
         }
 
         [Test]

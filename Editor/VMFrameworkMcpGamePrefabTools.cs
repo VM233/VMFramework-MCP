@@ -230,7 +230,7 @@ namespace VMFramework.MCP.Editor
             if (isLast)
             {
                 SetMemberValue(current, segment.Name, rawValue, path);
-                return current;
+                return InvokeAfterDeserialize(current);
             }
 
             var child = GetMemberValue(current, segment.Name);
@@ -468,7 +468,7 @@ namespace VMFramework.MCP.Editor
                     SetMemberValue(instance, pair.Key, pair.Value, $"{path}.{pair.Key}");
                 }
 
-                return instance;
+                return InvokeAfterDeserialize(instance);
             }
 
             if (value is IEnumerable enumerable && value is not string && typeof(IEnumerable).IsAssignableFrom(targetType))
@@ -492,6 +492,16 @@ namespace VMFramework.MCP.Editor
             }
 
             throw new InvalidOperationException($"Cannot convert '{path}' to '{targetType.FullName}'.");
+        }
+
+        private static object InvokeAfterDeserialize(object value)
+        {
+            if (value is ISerializationCallbackReceiver receiver)
+            {
+                receiver.OnAfterDeserialize();
+            }
+
+            return value;
         }
 
         private static Type ResolveAnyType(string typeName)
