@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.5
+
+- Add first-class GameTag listing, upsert, localization maintenance, and validation tools.
+- Stop VisualElementPath scanning at nested Unity object references so missing Transforms and other enumerable Unity objects cannot abort validation.
+
 ## 1.0.4
 
 - Inspect LocalizedString values as structured localized references instead of empty enumerable collections.

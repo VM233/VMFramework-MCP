@@ -1,6 +1,6 @@
 {
   "name": "com.vm233.vmframework-mcp",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "displayName": "VMFramework MCP",
   "description": "First-class Unity MCP project tools for inspecting and editing VMFramework assets, UI panels, bind objects, containers, and properties.",
   "unity": "6000.4",
@@ -15,6 +15,7 @@
   "type": "tool",
   "dependencies": {
     "com.anklebreaker.unity-mcp": "2.32.0",
+    "com.unity.localization": "1.5.12",
     "com.vm233.vm-odin-extensions": "1.0.0",
     "com.vm233.vmcore": "1.0.1",
     "com.vm233.vmframework": "1.0.0"

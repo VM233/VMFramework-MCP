@@ -1,7 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
+using UnityEngine;
 using UnityEngine.UIElements;
 using VMFramework.OdinExtensions;
 using VMFramework.UI;
@@ -16,6 +18,12 @@ namespace VMFramework.MCP.Editor.Tests
 
             [IsNotNullOrEmpty]
             public VisualElementPath requiredPath = new();
+        }
+
+        private sealed class MissingUnityObjectFixture
+        {
+            public Transform customTransform;
+            public VisualElementPath path = new();
         }
 
         [Test]
@@ -54,6 +62,37 @@ namespace VMFramework.MCP.Editor.Tests
                 Assert.That(result["valid"], Is.EqualTo(expectedValid));
                 Assert.That(result.ContainsKey("skipped"), Is.EqualTo(expectedValid));
             }
+        }
+
+        [Test]
+        public void ScanVisualElementPaths_DoesNotEnumerateMissingUnityObjectReferences()
+        {
+            Type toolsType = typeof(VMFrameworkMcpTools);
+            MethodInfo scan = toolsType.GetMethod("ScanVisualElementPaths",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Type recordType = toolsType.GetNestedType("VisualElementPathRecord", BindingFlags.NonPublic);
+            Assert.That(scan, Is.Not.Null);
+            Assert.That(recordType, Is.Not.Null);
+
+            var gameObject = new GameObject("Missing Transform Fixture");
+            var fixture = new MissingUnityObjectFixture
+            {
+                customTransform = gameObject.transform
+            };
+            UnityEngine.Object.DestroyImmediate(gameObject);
+
+            Type listType = typeof(List<>).MakeGenericType(recordType);
+            var records = (IList)Activator.CreateInstance(listType);
+            Assert.DoesNotThrow(() => scan.Invoke(null, new object[]
+            {
+                fixture,
+                "Fixture",
+                records,
+                new HashSet<object>(),
+                0,
+                null
+            }));
+            Assert.That(records.Count, Is.EqualTo(1));
         }
     }
 }

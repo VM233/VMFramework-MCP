@@ -20,6 +20,9 @@ The package depends on:
 - `vmframework/validate-visual-element-paths`
 - `vmframework/inspect-container-panel`
 - `vmframework/inspect-property-manager`
+- `vmframework/list-game-tags`
+- `vmframework/upsert-game-tag`
+- `vmframework/validate-game-tags`
 
 These tools are declared through `MCPProjectToolAttribute`, so MCP clients can see their names, descriptions, and schemas directly through the Unity MCP metadata endpoint.
 

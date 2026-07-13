@@ -1,8 +1,10 @@
 {
   "name": "VMFramework.MCP.Editor",
   "rootNamespace": "VMFramework.MCP.Editor",
-  "references": [
+    "references": [
     "AnkleBreaker.UnityMCP.Editor",
+    "Unity.Localization",
+    "Unity.Localization.Editor",
     "VMCore",
     "VMOdinExtensions",
     "VMFramework"

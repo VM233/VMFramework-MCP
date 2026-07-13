@@ -1331,6 +1331,15 @@ namespace VMFramework.MCP.Editor
                     continue;
                 }
 
+                // UnityEngine.Object instances can implement IEnumerable (Transform is the
+                // common case), but their serialized object graphs are not nested config data.
+                // Enumerating a missing/destroyed reference throws before ShouldRecurseInto can
+                // reject it, so stop at every non-root Unity object boundary.
+                if (value is Object)
+                {
+                    continue;
+                }
+
                 if (value is IEnumerable enumerable && value is not string)
                 {
                     int index = 0;
