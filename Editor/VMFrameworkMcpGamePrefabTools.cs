@@ -540,7 +540,7 @@ namespace VMFramework.MCP.Editor
             if (!type.IsValueType && !visited.Add(value))
                 return new Dictionary<string, object> { { "$type", type.FullName }, { "$cycle", true } };
 
-            if (value is IEnumerable enumerable)
+            if (value is IEnumerable enumerable && IsLocalizedReference(type) == false)
             {
                 var items = new List<object>();
                 var total = 0;
@@ -568,6 +568,20 @@ namespace VMFramework.MCP.Editor
             }
 
             return result;
+        }
+
+        private static bool IsLocalizedReference(Type type)
+        {
+            for (var current = type; current != null; current = current.BaseType)
+            {
+                if (string.Equals(current.FullName, "UnityEngine.Localization.LocalizedReference",
+                        StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static IEnumerable<FieldInfo> GetGamePrefabSerializableFields(Type type)

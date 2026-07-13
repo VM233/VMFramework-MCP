@@ -81,6 +81,40 @@ namespace VMFramework.MCP.Editor.Tests
         }
 
         [Test]
+        public void DescribeSerializedValue_TreatsLocalizedStringAsStructuredReference()
+        {
+            MethodInfo convert = GetPrivateMethod("ConvertSerializedValue");
+            MethodInfo describe = GetPrivateMethod("DescribeSerializedValue");
+            var rawValue = new Dictionary<string, object>
+            {
+                { "$type", typeof(LocalizedString).AssemblyQualifiedName },
+                { "m_TableReference", new Dictionary<string, object>
+                    {
+                        { "m_TableCollectionName", "Property" },
+                    }
+                },
+                { "m_TableEntryReference", new Dictionary<string, object>
+                    {
+                        { "m_KeyId", 0L },
+                        { "m_Key", "AttackRangePropertyName" },
+                    }
+                },
+            };
+            var localizedString = (LocalizedString)convert.Invoke(null,
+                new object[] { rawValue, typeof(LocalizedString), "name" });
+
+            var result = (Dictionary<string, object>)describe.Invoke(null,
+                new object[] { localizedString, 0, 8, 100, new HashSet<object>() });
+
+            Assert.That(result.ContainsKey("items"), Is.False,
+                "LocalizedString is a localized reference, not a semantic collection.");
+            var tableReference = (Dictionary<string, object>)result["m_TableReference"];
+            var entryReference = (Dictionary<string, object>)result["m_TableEntryReference"];
+            Assert.That(tableReference["m_TableCollectionName"], Is.EqualTo("Property"));
+            Assert.That(entryReference["m_Key"], Is.EqualTo("AttackRangePropertyName"));
+        }
+
+        [Test]
         public void SetPathValue_RefreshesNestedSerializationCallbackState()
         {
             var fixture = new LocalizedStringFixture();

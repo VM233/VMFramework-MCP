@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.4
+
+- Inspect LocalizedString values as structured localized references instead of empty enumerable collections.
+
 ## 1.0.3
 
 - Added HashSet and generic ICollection support to GamePrefab collection conversion, append, remove, clear, and indexed replacement operations.
