@@ -21,7 +21,7 @@ namespace VMFramework.MCP.Editor
 
         private const string PROPERTY_SCHEMA =
             "{\"type\":\"object\",\"properties\":{" +
-            "\"managerInstanceID\":{\"type\":\"integer\",\"description\":\"Exact PropertyManager instance id.\"}," +
+            "\"managerInstanceID\":{\"type\":\"string\",\"description\":\"Exact decimal PropertyManager object id.\"}," +
             "\"gameObjectPath\":{\"type\":\"string\",\"description\":\"Scene GameObject path or name.\"}," +
             "\"managerIndex\":{\"type\":\"integer\",\"description\":\"PropertyManager index under the GameObject. Defaults to 0.\"}," +
             "\"propertyName\":{\"type\":\"string\",\"description\":\"Exact property name.\"}" +
@@ -29,7 +29,7 @@ namespace VMFramework.MCP.Editor
 
         private const string SET_PROPERTY_SCHEMA =
             "{\"type\":\"object\",\"properties\":{" +
-            "\"managerInstanceID\":{\"type\":\"integer\"},\"gameObjectPath\":{\"type\":\"string\"}," +
+            "\"managerInstanceID\":{\"type\":\"string\"},\"gameObjectPath\":{\"type\":\"string\"}," +
             "\"managerIndex\":{\"type\":\"integer\"},\"propertyName\":{\"type\":\"string\"}," +
             "\"value\":{\"description\":\"Typed value. Unity Object values accept an asset path or {assetPath}.\"}," +
             "\"initial\":{\"type\":\"boolean\",\"description\":\"Pass initial=true to SetObjectValue. Defaults to false.\"}" +
@@ -37,7 +37,7 @@ namespace VMFramework.MCP.Editor
 
         private const string TRACE_SCHEMA =
             "{\"type\":\"object\",\"properties\":{" +
-            "\"managerInstanceID\":{\"type\":\"integer\"},\"gameObjectPath\":{\"type\":\"string\"}," +
+            "\"managerInstanceID\":{\"type\":\"string\"},\"gameObjectPath\":{\"type\":\"string\"}," +
             "\"managerIndex\":{\"type\":\"integer\"},\"propertyName\":{\"type\":\"string\",\"description\":\"Optional exact property filter.\"}," +
             "\"includeChildren\":{\"type\":\"boolean\",\"description\":\"Trace child PropertyManagers. Defaults to true.\"}," +
             "\"maxEvents\":{\"type\":\"integer\",\"description\":\"Maximum retained events, 1-10000. Defaults to 1000.\"}," +
@@ -155,10 +155,11 @@ namespace VMFramework.MCP.Editor
 
         private static List<PropertyManager> ResolvePropertyManagers(Dictionary<string, object> args)
         {
-            var instanceID = GetInt(args, "managerInstanceID", 0);
-            if (instanceID != 0)
+            string objectID = GetString(args, "managerInstanceID");
+            if (string.IsNullOrWhiteSpace(objectID) == false &&
+                objectID != "0")
             {
-                var manager = EditorUtility.InstanceIDToObject(instanceID) as PropertyManager;
+                var manager = MCPObjectId.ToObject(objectID) as PropertyManager;
                 return manager == null ? new List<PropertyManager>() : new List<PropertyManager> { manager };
             }
 
@@ -182,7 +183,7 @@ namespace VMFramework.MCP.Editor
             catch (Exception ex) { value = null; error = ex.Message; }
             return new Dictionary<string, object>
             {
-                { "managerInstanceID", manager.GetInstanceID() },
+                { "managerInstanceID", MCPObjectId.Get(manager) },
                 { "gameObjectPath", GetGameObjectPath(manager.transform) },
                 { "propertyName", name }, { "propertyType", property.GetType().FullName },
                 { "valueType", GetPropertyValueType(property).FullName },
@@ -204,7 +205,7 @@ namespace VMFramework.MCP.Editor
             propertyTraceEvents.Add(new Dictionary<string, object>
             {
                 { "sequence", propertyTraceEvents.Count }, { "time", EditorApplication.timeSinceStartup },
-                { "initial", initial }, { "managerInstanceID", target.Manager.GetInstanceID() },
+                { "initial", initial }, { "managerInstanceID", MCPObjectId.Get(target.Manager) },
                 { "gameObjectPath", GetGameObjectPath(target.Manager.transform) },
                 { "propertyName", target.PropertyName }, { "value", DescribeValue(property.ObjectValue) }
             });

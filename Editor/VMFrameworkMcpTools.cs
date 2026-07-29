@@ -1658,7 +1658,7 @@ namespace VMFramework.MCP.Editor
                     { "type", unityObject.GetType().FullName },
                     { "name", unityObject.name },
                     { "path", unityObject is Component component ? GetGameObjectPath(component.transform) : GetAssetPath(unityObject) },
-                    { "instanceID", unityObject.GetInstanceID() }
+                    { "instanceID", MCPObjectId.Get(unityObject) }
                 };
             }
 
