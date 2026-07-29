@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.6
+
+- Migrate the Unity MCP dependency and assembly reference to the independent VM Unity MCP package (`com.vm233.unity-mcp`, `VMUnityMCP.Editor`).
+
 ## 1.0.5
 
 - Add first-class GameTag listing, upsert, localization maintenance, and validation tools.

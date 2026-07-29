@@ -2,7 +2,7 @@
   "name": "VMFramework.MCP.Editor.Tests",
   "rootNamespace": "VMFramework.MCP.Editor.Tests",
   "references": [
-    "AnkleBreaker.UnityMCP.Editor",
+    "VMUnityMCP.Editor",
     "VMFramework.MCP.Editor",
     "VMFramework",
     "VMOdinExtensions",

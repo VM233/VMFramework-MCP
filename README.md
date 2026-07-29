@@ -4,7 +4,7 @@ VMFramework MCP is a Unity package that exposes VMFramework-specific editor work
 
 The package depends on:
 
-- `com.anklebreaker.unity-mcp`
+- `com.vm233.unity-mcp`
 - `com.vm233.vmcore`
 - `com.vm233.vmframework`
 
