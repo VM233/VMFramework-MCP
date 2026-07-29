@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.0
+
+- Require VM Unity MCP 5.0.0 and its compact list, detailed get, and execute project-tool contract.
+
 ## 1.0.6
 
 - Migrate the Unity MCP dependency and assembly reference to the independent VM Unity MCP package (`com.vm233.unity-mcp`, `VMUnityMCP.Editor`).
