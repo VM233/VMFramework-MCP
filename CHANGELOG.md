@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.6
+
+- Keep the conditional VisualElementPath regression fixture independent of
+  optional Odin Editor assemblies by iterating reflected records directly.
+
 ## 2.1.5
 
 - Exclude VisualElementPath fields disabled by resolvable Odin `ShowIf` or

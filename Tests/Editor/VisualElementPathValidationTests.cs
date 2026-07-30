@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
@@ -155,9 +154,11 @@ namespace VMFramework.MCP.Editor.Tests
                 });
 
                 FieldInfo memberField = recordType.GetField("member");
-                var members = records.Cast<object>()
-                    .Select(record => memberField.GetValue(record)?.ToString())
-                    .ToHashSet();
+                var members = new HashSet<string>();
+                foreach (object record in records)
+                {
+                    members.Add(memberField.GetValue(record)?.ToString());
+                }
                 foreach (string member in included)
                 {
                     Assert.That(members, Does.Contain(member));
