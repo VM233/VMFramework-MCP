@@ -647,6 +647,14 @@ namespace VMFramework.MCP.Editor
             {
                 { "valid", errorCount == 0 },
                 { "generalSettingPath", AssetDatabase.GetAssetPath(setting) },
+                {
+                    "coverage",
+                    new Dictionary<string, object>
+                    {
+                        { "includeMissingTranslations", includeMissingTranslations },
+                        { "includeGamePrefabReferences", includeGamePrefabReferences },
+                    }
+                },
                 { "tagCount", sources.Count },
                 { "errorCount", errorCount },
                 { "warningCount", warningCount },

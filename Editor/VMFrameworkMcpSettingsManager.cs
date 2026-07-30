@@ -137,6 +137,23 @@ namespace VMFramework.MCP.Editor
         internal static Dictionary<string, object> GetConfigurationSnapshot()
         {
             var project = GetProjectConfiguration();
+            var projectSettings = new Dictionary<string, object>
+            {
+                { "path", VMFrameworkMcpProjectConfiguration.ConfigPath },
+                { "found", project.Found },
+                { "valid", project.Valid },
+                {
+                    "gameTagValidation",
+                    new Dictionary<string, object>
+                    {
+                        { "includeMissingTranslations", IncludeMissingGameTagTranslations },
+                        { "includeGamePrefabReferences", IncludeGamePrefabTagReferences },
+                    }
+                },
+            };
+            if (!string.IsNullOrEmpty(project.Error))
+                projectSettings["error"] = project.Error;
+
             return new Dictionary<string, object>
             {
                 {
@@ -151,21 +168,7 @@ namespace VMFramework.MCP.Editor
                 },
                 {
                     "projectSettings",
-                    new Dictionary<string, object>
-                    {
-                        { "path", VMFrameworkMcpProjectConfiguration.ConfigPath },
-                        { "found", project.Found },
-                        { "valid", project.Valid },
-                        { "error", project.Error },
-                        {
-                            "gameTagValidation",
-                            new Dictionary<string, object>
-                            {
-                                { "includeMissingTranslations", IncludeMissingGameTagTranslations },
-                                { "includeGamePrefabReferences", IncludeGamePrefabTagReferences },
-                            }
-                        },
-                    }
+                    projectSettings
                 },
                 {
                     "preferences",

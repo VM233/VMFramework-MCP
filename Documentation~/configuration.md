@@ -101,3 +101,5 @@ from their owning VMFramework GeneralSettings.
   semantic diff. Complete before/after snapshots are opt-in.
 - Upsert replies contain focused readback. A potentially large global GameTag
   validation is opt-in or obtained from `validate-game-tags`.
+- GameTag validation replies include the effective coverage flags so callers
+  can distinguish team defaults from an explicitly narrowed audit.

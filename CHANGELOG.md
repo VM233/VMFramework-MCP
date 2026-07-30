@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.2
+
+- Omit an empty project-settings error from configuration replies and report
+  the effective GameTag validation coverage in validation results.
+
 ## 2.1.1
 
 - Restore the explicit integer parser used by VMFramework-specific depth,

@@ -134,6 +134,11 @@ namespace VMFramework.MCP.Editor.Tests
 
                 Assert.That(missingTranslations.GetValue(null), Is.EqualTo(false));
                 Assert.That(prefabReferences.GetValue(null), Is.EqualTo(true));
+                var snapshot = RequireDictionary(
+                    VMFrameworkMcpTools.GetConfiguration(
+                        new Dictionary<string, object>()));
+                var projectSettings = RequireDictionary(snapshot["projectSettings"]);
+                Assert.That(projectSettings.ContainsKey("error"), Is.False);
 
                 prefabReferences.SetValue(null, false);
                 reload.Invoke(null, null);
