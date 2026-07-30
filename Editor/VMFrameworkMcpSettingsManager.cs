@@ -214,6 +214,16 @@ namespace VMFramework.MCP.Editor
                 : 0;
         }
 
+        private static bool TryGetInt(Dictionary<string, object> args, string key, out int value)
+        {
+            value = 0;
+            if (args == null || !args.TryGetValue(key, out object rawValue) || rawValue == null)
+                return false;
+
+            value = Convert.ToInt32(rawValue);
+            return true;
+        }
+
         private static int Clamp(int value, int minimum, int maximum)
         {
             return Math.Max(minimum, Math.Min(maximum, value));

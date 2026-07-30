@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1
+
+- Restore the explicit integer parser used by VMFramework-specific depth,
+  collection, and trace preferences after introducing the shared Unity MCP
+  result-limit resolver.
+
 ## 2.1.0
 
 - Add team-owned GameTag validation settings under Project Settings and local
