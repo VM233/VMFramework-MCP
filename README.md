@@ -18,9 +18,9 @@ as permanent concrete tools because the active Unity project can change.
 ## Requirements and installation
 
 - Unity 6000.4 or newer.
-- `com.vm233.unity-mcp` 5.4.0 or newer. This version enforces input/output
+- `com.vm233.unity-mcp` 5.5.0 or newer. This version enforces input/output
   schemas and provides persistent project-tool Jobs, cleanup, error-code, and
-  side-effect metadata.
+  schema-v5 presence tags plus exact side-effect metadata.
 - The VMFramework, VMCore, VM Odin Extensions, and Unity Localization
   dependencies declared by `package.json`.
 
@@ -50,6 +50,11 @@ families:
 - one-shot runtime GameItem inspection;
 - generic wrapper/GamePrefab/Prefab/component/GameTag/localization/dependency
   and reverse-reference tracing.
+
+Catalog capability flags are presence-only strings in `tags`; missing tags mean
+false. Exact asset/runtime effects remain in `sideEffects`, while dynamic tool
+results such as actual visibility, a failed wait match, or a tick that was not
+advanced remain explicit booleans because false is meaningful runtime data.
 
 The runtime GameItem domain adapter is the only extension point for project
 facts that VMFramework does not own. Project implementations must read and

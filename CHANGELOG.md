@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.3.0
+
+- Adopt VM Unity MCP 5.5 schema-v5 tool metadata: positive capabilities use
+  `tags`, mutations stay in `sideEffects`, and false/empty descriptor aliases
+  are omitted.
+- Keep runtime booleans such as visibility, wait matching, and tick outcomes
+  explicit because they are dynamic domain facts rather than capability tags.
+- Add contract coverage preventing VMFramework tools from reintroducing legacy
+  boolean metadata.
+
 ## 2.2.0
 
 - Add `vmframework/runtime-game-item-session` as the single owner for borrowing,

@@ -70,15 +70,28 @@ namespace VMFramework.MCP.Editor.Tests
             foreach (var tool in tools)
             {
                 string toolName = GetString(tool, "toolName");
-                Assert.That(tool["valid"], Is.EqualTo(true), toolName);
-                Assert.That(tool["firstClass"],
+                foreach (string retiredKey in new[]
+                         {
+                             "readOnly", "mutatesAssets", "mutatesRuntime", "dangerous",
+                             "longRunning", "mayReloadDomain", "requiresPlayMode",
+                             "firstClass", "cleanupAvailable", "incrementalJob",
+                             "hasOutputSchema", "enforcesInputSchema",
+                             "enforcesOutputSchema", "valid",
+                         })
+                {
+                    Assert.That(tool.ContainsKey(retiredKey), Is.False,
+                        $"{toolName} still exposes legacy boolean metadata '{retiredKey}'.");
+                }
+                Assert.That(HasTag(tool, "invalid"), Is.False, toolName);
+                Assert.That(HasTag(tool, "firstClass"),
                     Is.EqualTo(ExpectedFirstClassToolNames.Contains(toolName)),
                     $"{toolName} has the wrong direct-exposure contract.");
 
                 int operationKinds =
-                    (Convert.ToBoolean(tool["readOnly"]) ? 1 : 0) +
-                    (Convert.ToBoolean(tool["mutatesAssets"]) ? 1 : 0) +
-                    (Convert.ToBoolean(tool["mutatesRuntime"]) ? 1 : 0);
+                    (HasTag(tool, "readOnly") ? 1 : 0) +
+                    (HasSideEffect(tool, "writesAssets") ||
+                     HasSideEffect(tool, "writesScene") ? 1 : 0) +
+                    (HasSideEffect(tool, "changesRuntimeState") ? 1 : 0);
                 Assert.That(operationKinds, Is.EqualTo(1), toolName);
 
                 var schema = RequireDictionary(tool["inputSchema"]);
@@ -87,7 +100,7 @@ namespace VMFramework.MCP.Editor.Tests
 
                 if (ExpectedFirstClassToolNames.Contains(toolName))
                 {
-                    Assert.That(tool["enforcesOutputSchema"], Is.EqualTo(true),
+                    Assert.That(HasTag(tool, "outputSchema"), Is.True,
                         $"{toolName} must provide and enforce outputSchema.");
                     Assert.That(RequireDictionary(tool["outputSchema"])["type"],
                         Is.EqualTo("object"), toolName);
@@ -110,7 +123,7 @@ namespace VMFramework.MCP.Editor.Tests
                 .ToDictionary(tool => GetString(tool, "toolName"));
 
             var session = details["vmframework/runtime-game-item-session"];
-            Assert.That(session["cleanupAvailable"], Is.EqualTo(true));
+            Assert.That(HasTag(session, "cleanup"), Is.True);
             Assert.That(session["cleanupToolName"],
                 Is.EqualTo("vmframework/runtime-game-item-session"));
             CollectionAssert.Contains((IList)session["sideEffects"],
@@ -126,8 +139,8 @@ namespace VMFramework.MCP.Editor.Tests
                          "vmframework/runtime-ui-panel",
                      })
             {
-                Assert.That(details[toolName]["incrementalJob"],
-                    Is.EqualTo(true), toolName);
+                Assert.That(HasTag(details[toolName], "incrementalJob"),
+                    Is.True, toolName);
             }
 
             CollectionAssert.Contains(
@@ -147,24 +160,24 @@ namespace VMFramework.MCP.Editor.Tests
                 .ToDictionary(tool => GetString(tool, "toolName"));
 
             var setProperty = details["vmframework/set-property"];
-            Assert.That(setProperty["mutatesRuntime"], Is.EqualTo(true));
-            Assert.That(setProperty["requiresPlayMode"], Is.EqualTo(true));
+            Assert.That(HasSideEffect(setProperty, "changesRuntimeState"), Is.True);
+            Assert.That(HasTag(setProperty, "requiresPlayMode"), Is.True);
 
             var startTrace = details["vmframework/start-property-trace"];
-            Assert.That(startTrace["mutatesRuntime"], Is.EqualTo(true));
+            Assert.That(HasSideEffect(startTrace, "changesRuntimeState"), Is.True);
             var startProperties = RequireDictionary(
                 RequireDictionary(startTrace["inputSchema"])["properties"]);
             Assert.That(startProperties.ContainsKey("maxEvents"), Is.True);
             Assert.That(startProperties.ContainsKey("clear"), Is.False);
 
             var getTrace = details["vmframework/get-property-trace"];
-            Assert.That(getTrace["readOnly"], Is.EqualTo(true));
+            Assert.That(HasTag(getTrace, "readOnly"), Is.True);
             var readProperties = RequireDictionary(
                 RequireDictionary(getTrace["inputSchema"])["properties"]);
             Assert.That(readProperties.Keys, Is.EquivalentTo(new[] { "offset", "limit" }));
 
             var stopTrace = details["vmframework/stop-property-trace"];
-            Assert.That(stopTrace["mutatesRuntime"], Is.EqualTo(true));
+            Assert.That(HasSideEffect(stopTrace, "changesRuntimeState"), Is.True);
             Assert.That(
                 RequireDictionary(RequireDictionary(stopTrace["inputSchema"])["properties"]).Keys,
                 Is.EquivalentTo(new[] { "offset", "limit" }));
@@ -306,6 +319,25 @@ namespace VMFramework.MCP.Editor.Tests
             return dictionary.TryGetValue(key, out object value)
                 ? value?.ToString() ?? ""
                 : "";
+        }
+
+        private static bool HasTag(Dictionary<string, object> metadata, string tag)
+        {
+            return HasString(metadata, "tags", tag);
+        }
+
+        private static bool HasSideEffect(Dictionary<string, object> metadata, string sideEffect)
+        {
+            return HasString(metadata, "sideEffects", sideEffect);
+        }
+
+        private static bool HasString(Dictionary<string, object> metadata,
+            string key, string expected)
+        {
+            return metadata.TryGetValue(key, out object value) &&
+                   value is IEnumerable values &&
+                   values.Cast<object>().Any(item =>
+                       string.Equals(item?.ToString(), expected, StringComparison.Ordinal));
         }
 
         private static Dictionary<string, object> RequireDictionary(object value)
