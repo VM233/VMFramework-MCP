@@ -59,7 +59,7 @@ each VMFramework tool keeps its own hard maximum.
 | `list-general-settings` | Shared result limit | `includeGamePrefabDetails` can repeat large provider lists and defaults off. |
 | `inspect-ui-panel` | None | Exactly one `panelID` or `prefabPath` is required; runtime-state inclusion is request-owned and defaults off. |
 | `inspect-bind-objects` | None | Exactly one `panelID` or `prefabPath` is required; runtime counts are request-owned and default off. |
-| `validate-visual-element-paths` | Shared result limit | Exactly one `panelID`, one `prefabPath`, or `allPanels: true` is required. Valid records default off; all-panel output uses one global page and separates source errors from invalid paths. |
+| `validate-visual-element-paths` | Shared result limit | Exactly one `panelID`, one `prefabPath`, or `allPanels: true` is required. Valid records default off; all-panel output uses one global page, separates source errors from invalid paths, and excludes fields disabled by resolvable Odin `ShowIf`/`HideIf` conditions. |
 | `inspect-container-panel` | None | Exactly one `panelID` or `prefabPath` is required; runtime state is request-owned and defaults off. |
 | `inspect-property-manager` | Shared result limit | Target, child traversal, property filter, and selection usage remain explicit. Omitted selectors scan loaded scenes rather than depending on hidden Editor selection. |
 | `inspect-game-prefab` | VMFramework depth/item preferences | Exact ID is a selector. |

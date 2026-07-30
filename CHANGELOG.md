@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.5
+
+- Exclude VisualElementPath fields disabled by resolvable Odin `ShowIf` or
+  `HideIf` conditions from validation, so inactive alternate configuration
+  branches do not produce required-path false positives.
+- Support boolean fields, enum/value comparisons, properties, and parameterless
+  condition methods while keeping unsupported expressions conservatively active.
+- Add regression coverage for both alternate `PairEntryAdder` path branches and
+  enum-gated custom overflow containers.
+
 ## 2.1.4
 
 - Require VM Unity MCP 5.3.4 so the `not` and `const` constraints used by panel

@@ -1552,6 +1552,11 @@ namespace VMFramework.MCP.Editor
 
             foreach (var field in GetSerializableFields(targetType))
             {
+                if (OdinConditionalFieldUtility.IsActive(target, field) == false)
+                {
+                    continue;
+                }
+
                 object value;
                 try
                 {

@@ -47,7 +47,9 @@ Single-panel UI tools require exactly one `panelID` or `prefabPath`.
 `vmframework/validate-visual-element-paths` additionally accepts
 `allPanels: true` to audit every registered panel and standalone `UIPanel`
 prefab. Aggregate results are globally paginated and report missing prefabs,
-missing VisualTreeAssets, invalid panels, and invalid paths separately.
+missing VisualTreeAssets, invalid panels, and invalid paths separately. Paths
+disabled by a resolvable Odin `ShowIf` or `HideIf` condition are excluded
+because they are not part of the component's active configuration.
 
 All schemas reject unknown business arguments. Selectors, paths, IDs,
 transaction operations, `dryRun`, overwrite choices, and registration choices
