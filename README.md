@@ -18,7 +18,9 @@ as permanent concrete tools because the active Unity project can change.
 ## Requirements and installation
 
 - Unity 6000.4 or newer.
-- `com.vm233.unity-mcp` 5.3.3 or newer.
+- `com.vm233.unity-mcp` 5.3.4 or newer. This version enforces the `not` and
+  `const` constraints used by VMFramework MCP selector schemas before tool
+  invocation.
 - The VMFramework, VMCore, VM Odin Extensions, and Unity Localization
   dependencies declared by `package.json`.
 

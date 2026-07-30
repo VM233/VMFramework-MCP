@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.4
+
+- Require VM Unity MCP 5.3.4 so the `not` and `const` constraints used by panel
+  selector schemas are enforced at the shared project-tool boundary before
+  invocation.
+
 ## 2.1.3
 
 - Require exactly one `panelID` or `prefabPath` for every single-panel
