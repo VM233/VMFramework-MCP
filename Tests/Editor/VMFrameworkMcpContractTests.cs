@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -98,6 +99,81 @@ namespace VMFramework.MCP.Editor.Tests
             Assert.That(
                 RequireDictionary(RequireDictionary(stopTrace["inputSchema"])["properties"]).Keys,
                 Is.EquivalentTo(new[] { "offset", "limit" }));
+        }
+
+        [Test]
+        public void PanelTools_RequireAnUnambiguousSelector_AndValidationSupportsAllPanels()
+        {
+            var details = MCPProjectToolCommands.GetToolDetails(false)
+                .Where(tool => GetString(tool, "toolName").StartsWith(
+                    "vmframework/", StringComparison.Ordinal))
+                .ToDictionary(tool => GetString(tool, "toolName"));
+
+            foreach (string toolName in new[]
+                     {
+                         "vmframework/inspect-ui-panel",
+                         "vmframework/inspect-bind-objects",
+                         "vmframework/inspect-container-panel"
+                     })
+            {
+                var schema = RequireDictionary(details[toolName]["inputSchema"]);
+                Assert.That(schema["oneOf"], Is.InstanceOf<IList>(), toolName);
+                Assert.That(((IList)schema["oneOf"]).Count, Is.EqualTo(2), toolName);
+            }
+
+            var validationSchema = RequireDictionary(
+                details["vmframework/validate-visual-element-paths"]["inputSchema"]);
+            var validationProperties = RequireDictionary(validationSchema["properties"]);
+            Assert.That(validationProperties.ContainsKey("allPanels"), Is.True);
+            Assert.That(validationSchema["oneOf"], Is.InstanceOf<IList>());
+            Assert.That(((IList)validationSchema["oneOf"]).Count, Is.EqualTo(3));
+
+            Assert.Throws<ArgumentException>(() =>
+                VMFrameworkMcpTools.InspectUIPanel(new Dictionary<string, object>()));
+            Assert.Throws<ArgumentException>(() =>
+                VMFrameworkMcpTools.InspectBindObjects(new Dictionary<string, object>()));
+            Assert.Throws<ArgumentException>(() =>
+                VMFrameworkMcpTools.InspectContainerPanel(new Dictionary<string, object>()));
+            Assert.Throws<ArgumentException>(() =>
+                VMFrameworkMcpTools.ValidateVisualElementPaths(new Dictionary<string, object>()));
+            Assert.Throws<ArgumentException>(() =>
+                VMFrameworkMcpTools.InspectUIPanel(new Dictionary<string, object>
+                {
+                    { "panelID", "panel" },
+                    { "prefabPath", "Assets/Panel.prefab" }
+                }));
+            Assert.Throws<ArgumentException>(() =>
+                VMFrameworkMcpTools.ValidateVisualElementPaths(new Dictionary<string, object>
+                {
+                    { "allPanels", true },
+                    { "panelID", "panel" }
+                }));
+            Assert.Throws<ArgumentException>(() =>
+                VMFrameworkMcpTools.ValidateVisualElementPaths(new Dictionary<string, object>
+                {
+                    { "allPanels", false },
+                    { "panelID", "panel" }
+                }));
+        }
+
+        [Test]
+        public void ValidateVisualElementPaths_AllPanels_ReturnsBoundedAggregate()
+        {
+            var result = RequireDictionary(
+                VMFrameworkMcpTools.ValidateVisualElementPaths(new Dictionary<string, object>
+                {
+                    { "allPanels", true },
+                    { "limit", 1 }
+                }));
+
+            Assert.That(result["mode"], Is.EqualTo("allPanels"));
+            Assert.That(Convert.ToInt32(result["panelCount"]), Is.GreaterThanOrEqualTo(0));
+            Assert.That(Convert.ToInt32(result["count"]), Is.LessThanOrEqualTo(1));
+            Assert.That(result.ContainsKey("missingPrefabCount"), Is.True);
+            Assert.That(result.ContainsKey("missingVisualTreeCount"), Is.True);
+            Assert.That(result.ContainsKey("invalidPathCount"), Is.True);
+            Assert.That(result["paths"], Is.InstanceOf<IList>());
+            Assert.That(((IList)result["paths"]).Count, Is.LessThanOrEqualTo(1));
         }
 
         [Test]

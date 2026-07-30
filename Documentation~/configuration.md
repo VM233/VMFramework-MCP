@@ -57,10 +57,10 @@ each VMFramework tool keeps its own hard maximum.
 | `find-game-prefab` | Shared result limit | ID, filter, and type are selectors. |
 | `inspect-game-prefab-wrapper` | Shared result limit | Exact ID/path and filter are selectors. Missing exact targets now fail instead of looking like an empty broad query. |
 | `list-general-settings` | Shared result limit | `includeGamePrefabDetails` can repeat large provider lists and defaults off. |
-| `inspect-ui-panel` | None | Panel selector and runtime-state inclusion are request-owned; runtime detail defaults off. |
-| `inspect-bind-objects` | None | Panel selector and runtime counts are request-owned; runtime detail defaults off. |
-| `validate-visual-element-paths` | Shared result limit | Panel selector and valid-record inclusion are request-owned; valid records default off. |
-| `inspect-container-panel` | None | Panel selector and runtime state are request-owned; runtime detail defaults off. |
+| `inspect-ui-panel` | None | Exactly one `panelID` or `prefabPath` is required; runtime-state inclusion is request-owned and defaults off. |
+| `inspect-bind-objects` | None | Exactly one `panelID` or `prefabPath` is required; runtime counts are request-owned and default off. |
+| `validate-visual-element-paths` | Shared result limit | Exactly one `panelID`, one `prefabPath`, or `allPanels: true` is required. Valid records default off; all-panel output uses one global page and separates source errors from invalid paths. |
+| `inspect-container-panel` | None | Exactly one `panelID` or `prefabPath` is required; runtime state is request-owned and defaults off. |
 | `inspect-property-manager` | Shared result limit | Target, child traversal, property filter, and selection usage remain explicit. Omitted selectors scan loaded scenes rather than depending on hidden Editor selection. |
 | `inspect-game-prefab` | VMFramework depth/item preferences | Exact ID is a selector. |
 | `update-game-prefab` | VMFramework depth/item/snapshot preferences | ID and ordered operations define the mutation. Complete snapshots default off; bounded operation summaries and semantic diff remain. |

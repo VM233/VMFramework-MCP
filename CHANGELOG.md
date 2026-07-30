@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.1.3
+
+- Require exactly one `panelID` or `prefabPath` for every single-panel
+  inspection tool so runtime resolution and published schemas have the same
+  contract.
+- Add `allPanels: true` to VisualElementPath validation, covering registered
+  panel configs and standalone `UIPanel` prefabs with one globally bounded,
+  paginated report.
+- Distinguish missing prefabs, missing VisualTreeAssets, invalid panels, and
+  invalid paths in aggregate results.
+- Replace the README's hand-maintained complete tool table with live
+  `project-tools/list -> get -> execute` discovery guidance.
+
 ## 2.1.2
 
 - Omit an empty project-settings error from configuration replies and report

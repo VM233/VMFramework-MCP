@@ -77,21 +77,34 @@ namespace VMFramework.MCP.Editor
             "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Maximum returned settings. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 100.\",\"x-unityMcpDefaultSource\":\"Preferences > Unity MCP > Tool Responses\",\"x-unityMcpExplicitValueWins\":true}" +
             "},\"additionalProperties\":false}";
 
+        private const string PANEL_SELECTOR_PROPERTIES_JSON =
+            "\"panelID\":{\"type\":\"string\",\"minLength\":1,\"description\":\"UIPanelConfig id.\"}," +
+            "\"prefabPath\":{\"type\":\"string\",\"minLength\":1,\"description\":\"Panel prefab asset path.\"}";
+
+        private const string PANEL_SELECTOR_ONE_OF_JSON =
+            "\"oneOf\":[" +
+            "{\"required\":[\"panelID\"],\"not\":{\"required\":[\"prefabPath\"]}}," +
+            "{\"required\":[\"prefabPath\"],\"not\":{\"required\":[\"panelID\"]}}" +
+            "]";
+
         private const string PANEL_SOURCE_INPUT_SCHEMA_JSON =
             "{\"type\":\"object\",\"properties\":{" +
-            "\"panelID\":{\"type\":\"string\",\"description\":\"UIPanelConfig id to inspect.\"}," +
-            "\"prefabPath\":{\"type\":\"string\",\"description\":\"Panel prefab asset path to inspect.\"}," +
+            PANEL_SELECTOR_PROPERTIES_JSON + "," +
             "\"includeRuntime\":{\"type\":\"boolean\",\"description\":\"Include runtime unique panel state when Play Mode is running. Defaults to false and remains request-owned.\"}" +
-            "},\"additionalProperties\":false}";
+            "}," + PANEL_SELECTOR_ONE_OF_JSON + ",\"additionalProperties\":false}";
 
         private const string VALIDATE_VISUAL_ELEMENT_PATHS_INPUT_SCHEMA_JSON =
             "{\"type\":\"object\",\"properties\":{" +
-            "\"panelID\":{\"type\":\"string\",\"description\":\"UIPanelConfig id to validate.\"}," +
-            "\"prefabPath\":{\"type\":\"string\",\"description\":\"Panel prefab asset path to validate.\"}," +
+            PANEL_SELECTOR_PROPERTIES_JSON + "," +
+            "\"allPanels\":{\"type\":\"boolean\",\"description\":\"Validate every registered or prefab-backed VMFramework panel. Must be true and cannot be combined with panelID or prefabPath.\"}," +
             "\"includeValid\":{\"type\":\"boolean\",\"description\":\"Include valid paths in the result. Defaults to false and remains request-owned.\"}," +
             "\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Reported-path offset. Defaults to 0.\"}," +
             "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Maximum returned path records. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 100.\",\"x-unityMcpDefaultSource\":\"Preferences > Unity MCP > Tool Responses\",\"x-unityMcpExplicitValueWins\":true}" +
-            "},\"additionalProperties\":false}";
+            "},\"oneOf\":[" +
+            "{\"required\":[\"panelID\"],\"not\":{\"anyOf\":[{\"required\":[\"prefabPath\"]},{\"required\":[\"allPanels\"]}]}}," +
+            "{\"required\":[\"prefabPath\"],\"not\":{\"anyOf\":[{\"required\":[\"panelID\"]},{\"required\":[\"allPanels\"]}]}}," +
+            "{\"required\":[\"allPanels\"],\"properties\":{\"allPanels\":{\"const\":true}},\"not\":{\"anyOf\":[{\"required\":[\"panelID\"]},{\"required\":[\"prefabPath\"]}]}}" +
+            "],\"additionalProperties\":false}";
 
         private const string INSPECT_PROPERTY_MANAGER_INPUT_SCHEMA_JSON =
             "{\"type\":\"object\",\"properties\":{" +
@@ -387,76 +400,68 @@ namespace VMFramework.MCP.Editor
         }
 
         [MCPProjectTool(VALIDATE_VISUAL_ELEMENT_PATHS_TOOL_NAME,
-            Description = "Validate VisualElementPath fields on a VMFramework UI panel prefab against its UIDocument VisualTreeAsset.",
+            Description = "Validate VisualElementPath fields on one or every VMFramework UI panel prefab against its UIDocument VisualTreeAsset.",
             InputSchemaJson = VALIDATE_VISUAL_ELEMENT_PATHS_INPUT_SCHEMA_JSON,
             ReadOnly = true)]
         public static object ValidateVisualElementPaths(Dictionary<string, object> args)
         {
             args ??= new();
-            var source = ResolvePanelSource(args);
             bool includeValid = GetBool(args, "includeValid", false);
             int offset = GetOffset(args);
             int limit = VMFrameworkMcpSettingsManager.ResolveResultLimit(
                 args, "limit", 100, 5000);
 
-            var visualTree = GetVisualTreeAsset(source.prefab);
-            if (visualTree == null)
+            if (args.ContainsKey("allPanels"))
+            {
+                if (GetBool(args, "allPanels", false) == false)
+                {
+                    throw new ArgumentException("allPanels must be true when provided.");
+                }
+
+                if (string.IsNullOrWhiteSpace(GetString(args, "panelID")) == false ||
+                    string.IsNullOrWhiteSpace(GetString(args, "prefabPath")) == false)
+                {
+                    throw new ArgumentException(
+                        "allPanels cannot be combined with panelID or prefabPath.");
+                }
+
+                return ValidateAllVisualElementPaths(includeValid, offset, limit);
+            }
+
+            var source = ResolvePanelSource(args);
+            var validation = ValidateVisualElementPaths(source, includeValid);
+            if (validation.error != null)
             {
                 return new Dictionary<string, object>
                 {
                     { "valid", false },
-                    { "error", "Panel prefab has no UIDocument VisualTreeAsset." },
+                    { "error", validation.error },
                     { "panelID", source.panelID ?? "" },
                     { "prefabPath", GetAssetPath(source.prefab) }
                 };
             }
 
-            var root = visualTree.CloneTree();
-            var records = new List<VisualElementPathRecord>();
-            foreach (var component in source.prefab.GetComponentsInChildren<Component>(true))
-            {
-                if (component == null)
-                {
-                    continue;
-                }
-
-                ScanVisualElementPaths(component, GetGameObjectPath(component.transform) + "/" + component.GetType().Name,
-                    records, new HashSet<object>(ReferenceEqualityComparer.Instance), 0, null);
-            }
-
-            var allResults = new List<Dictionary<string, object>>();
-            int invalidCount = 0;
-
-            foreach (var record in records)
-            {
-                var result = ValidateVisualElementPath(root, record);
-                bool isValid = (bool)result["valid"];
-                if (isValid == false)
-                {
-                    invalidCount++;
-                }
-
-                if (includeValid || isValid == false)
-                {
-                    allResults.Add(result);
-                }
-            }
-            var results = allResults.Skip(offset).Take(limit).ToList();
+            var results = validation.reportedPaths.Skip(offset).Take(limit).ToList();
 
             return new Dictionary<string, object>
             {
-                { "valid", invalidCount == 0 },
-                { "invalidCount", invalidCount },
-                { "checkedCount", records.Count },
+                { "valid", validation.invalidCount == 0 },
+                { "invalidCount", validation.invalidCount },
+                { "checkedCount", validation.checkedCount },
                 { "panelID", source.panelID ?? "" },
                 { "prefabPath", GetAssetPath(source.prefab) },
-                { "visualTreeAssetPath", GetAssetPath(visualTree) },
+                { "visualTreeAssetPath", GetAssetPath(validation.visualTree) },
                 { "paths", results },
                 { "count", results.Count },
-                { "total", allResults.Count },
+                { "total", validation.reportedPaths.Count },
                 { "offset", offset },
                 { "limit", limit },
-                { "nextOffset", offset + results.Count < allResults.Count ? (object)(offset + results.Count) : null },
+                {
+                    "nextOffset",
+                    offset + results.Count < validation.reportedPaths.Count
+                        ? (object)(offset + results.Count)
+                        : null
+                },
             };
         }
 
@@ -891,10 +896,18 @@ namespace VMFramework.MCP.Editor
 
         private static PanelSource ResolvePanelSource(Dictionary<string, object> args)
         {
-            string panelID = GetString(args, "panelID") ?? GetString(args, "id");
+            string panelID = GetString(args, "panelID");
             string prefabPath = GetString(args, "prefabPath");
+            bool hasPanelID = string.IsNullOrWhiteSpace(panelID) == false;
+            bool hasPrefabPath = string.IsNullOrWhiteSpace(prefabPath) == false;
 
-            if (string.IsNullOrWhiteSpace(prefabPath) == false)
+            if (hasPanelID == hasPrefabPath)
+            {
+                throw new ArgumentException(
+                    "Exactly one panel selector is required: panelID or prefabPath.");
+            }
+
+            if (hasPrefabPath)
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
                 if (prefab == null)
@@ -908,11 +921,6 @@ namespace VMFramework.MCP.Editor
                     prefab = prefab,
                     config = FindPanelConfigByPrefab(prefab)
                 };
-            }
-
-            if (string.IsNullOrWhiteSpace(panelID))
-            {
-                throw new ArgumentException("panelID or prefabPath is required.");
             }
 
             var info = FindGamePrefabInfos(panelID, null, typeof(UIPanelConfig), 1).FirstOrDefault();
@@ -933,6 +941,186 @@ namespace VMFramework.MCP.Editor
                 prefab = config.prefab,
                 wrapper = info.wrapper
             };
+        }
+
+        private static object ValidateAllVisualElementPaths(bool includeValid, int offset, int limit)
+        {
+            var sources = FindAllPanelSources();
+            var allPaths = new List<Dictionary<string, object>>();
+            int checkedCount = 0;
+            int invalidCount = 0;
+            int invalidPanelCount = 0;
+            int missingPrefabCount = 0;
+            int missingVisualTreeCount = 0;
+
+            foreach (var source in sources)
+            {
+                var validation = ValidateVisualElementPaths(source, includeValid);
+                checkedCount += validation.checkedCount;
+                invalidCount += validation.invalidCount;
+
+                if (validation.error != null)
+                {
+                    invalidPanelCount++;
+                    if (source.prefab == null)
+                    {
+                        missingPrefabCount++;
+                    }
+                    else
+                    {
+                        missingVisualTreeCount++;
+                    }
+
+                    allPaths.Add(new Dictionary<string, object>
+                    {
+                        { "valid", false },
+                        { "panelID", source.panelID ?? "" },
+                        { "prefabPath", GetAssetPath(source.prefab) },
+                        { "error", validation.error }
+                    });
+                    continue;
+                }
+
+                if (validation.invalidCount > 0)
+                {
+                    invalidPanelCount++;
+                }
+
+                foreach (var path in validation.reportedPaths)
+                {
+                    path["panelID"] = source.panelID ?? "";
+                    path["prefabPath"] = GetAssetPath(source.prefab);
+                    path["visualTreeAssetPath"] = GetAssetPath(validation.visualTree);
+                    allPaths.Add(path);
+                }
+            }
+
+            var paths = allPaths.Skip(offset).Take(limit).ToList();
+            return new Dictionary<string, object>
+            {
+                { "mode", "allPanels" },
+                { "valid", invalidPanelCount == 0 },
+                { "panelCount", sources.Count },
+                { "invalidPanelCount", invalidPanelCount },
+                { "missingPrefabCount", missingPrefabCount },
+                { "missingVisualTreeCount", missingVisualTreeCount },
+                { "checkedCount", checkedCount },
+                { "invalidPathCount", invalidCount },
+                { "invalidCount", invalidCount + missingPrefabCount + missingVisualTreeCount },
+                { "paths", paths },
+                { "count", paths.Count },
+                { "total", allPaths.Count },
+                { "offset", offset },
+                { "limit", limit },
+                {
+                    "nextOffset",
+                    offset + paths.Count < allPaths.Count
+                        ? (object)(offset + paths.Count)
+                        : null
+                }
+            };
+        }
+
+        private static List<PanelSource> FindAllPanelSources()
+        {
+            var sourcesByKey = new Dictionary<string, PanelSource>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var info in FindGamePrefabInfos(null, null, typeof(UIPanelConfig), int.MaxValue))
+            {
+                if (info.gamePrefab is not UIPanelConfig config)
+                {
+                    continue;
+                }
+
+                string prefabPath = GetAssetPath(config.prefab);
+                string key = string.IsNullOrWhiteSpace(prefabPath)
+                    ? $"config:{config.id}"
+                    : $"prefab:{prefabPath}";
+                sourcesByKey[key] = new PanelSource
+                {
+                    panelID = config.id,
+                    config = config,
+                    prefab = config.prefab,
+                    wrapper = info.wrapper
+                };
+            }
+
+            foreach (string guid in AssetDatabase.FindAssets("t:Prefab"))
+            {
+                string prefabPath = AssetDatabase.GUIDToAssetPath(guid);
+                string key = $"prefab:{prefabPath}";
+                if (sourcesByKey.ContainsKey(key))
+                {
+                    continue;
+                }
+
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                if (prefab == null || prefab.GetComponentInChildren<UIPanel>(true) == null)
+                {
+                    continue;
+                }
+
+                sourcesByKey[key] = new PanelSource
+                {
+                    panelID = null,
+                    config = null,
+                    prefab = prefab
+                };
+            }
+
+            return sourcesByKey.Values
+                .OrderBy(source => source.panelID ?? "", StringComparer.Ordinal)
+                .ThenBy(source => GetAssetPath(source.prefab), StringComparer.Ordinal)
+                .ToList();
+        }
+
+        private static PanelValidationResult ValidateVisualElementPaths(PanelSource source, bool includeValid)
+        {
+            var validation = new PanelValidationResult();
+            if (source?.prefab == null)
+            {
+                validation.error = "Panel source has no prefab.";
+                return validation;
+            }
+
+            validation.visualTree = GetVisualTreeAsset(source.prefab);
+            if (validation.visualTree == null)
+            {
+                validation.error = "Panel prefab has no UIDocument VisualTreeAsset.";
+                return validation;
+            }
+
+            var root = validation.visualTree.CloneTree();
+            var records = new List<VisualElementPathRecord>();
+            foreach (var component in source.prefab.GetComponentsInChildren<Component>(true))
+            {
+                if (component == null)
+                {
+                    continue;
+                }
+
+                ScanVisualElementPaths(component,
+                    GetGameObjectPath(component.transform) + "/" + component.GetType().Name,
+                    records, new HashSet<object>(ReferenceEqualityComparer.Instance), 0, null);
+            }
+
+            validation.checkedCount = records.Count;
+            foreach (var record in records)
+            {
+                var result = ValidateVisualElementPath(root, record);
+                bool isValid = (bool)result["valid"];
+                if (isValid == false)
+                {
+                    validation.invalidCount++;
+                }
+
+                if (includeValid || isValid == false)
+                {
+                    validation.reportedPaths.Add(result);
+                }
+            }
+
+            return validation;
         }
 
         private static UIPanelConfig FindPanelConfigByPrefab(GameObject prefab)
@@ -2174,6 +2362,15 @@ namespace VMFramework.MCP.Editor
             public UIPanelConfig config;
             public GameObject prefab;
             public GamePrefabWrapper wrapper;
+        }
+
+        private sealed class PanelValidationResult
+        {
+            public string error;
+            public VisualTreeAsset visualTree;
+            public int checkedCount;
+            public int invalidCount;
+            public readonly List<Dictionary<string, object>> reportedPaths = new();
         }
 
         private sealed class GamePrefabInfo
