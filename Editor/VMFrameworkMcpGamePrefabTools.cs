@@ -22,17 +22,23 @@ namespace VMFramework.MCP.Editor
         private const string INSPECT_GAME_PREFAB_SCHEMA =
             "{\"type\":\"object\",\"properties\":{" +
             "\"id\":{\"type\":\"string\",\"description\":\"Exact GamePrefab id.\"}," +
-            "\"maxDepth\":{\"type\":\"integer\",\"description\":\"Maximum nested depth, 1-16. Defaults to 8.\"}," +
-            "\"maxCollectionItems\":{\"type\":\"integer\",\"description\":\"Maximum items per collection, 1-1000. Defaults to 100.\"}" +
-            "},\"required\":[\"id\"]}";
+            "\"maxDepth\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":16,\"description\":\"Maximum nested depth. Uses Preferences > VMFramework MCP when omitted; initially 8.\",\"x-unityMcpDefaultSource\":\"Preferences > VMFramework MCP > GamePrefab Inspection\",\"x-unityMcpExplicitValueWins\":true}," +
+            "\"maxCollectionItems\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":1000,\"description\":\"Maximum items retained per nested collection. Uses Preferences > VMFramework MCP when omitted; initially 100.\",\"x-unityMcpDefaultSource\":\"Preferences > VMFramework MCP > GamePrefab Inspection\",\"x-unityMcpExplicitValueWins\":true}" +
+            "},\"required\":[\"id\"],\"additionalProperties\":false}";
 
         private const string UPDATE_GAME_PREFAB_SCHEMA =
             "{\"type\":\"object\",\"properties\":{" +
             "\"id\":{\"type\":\"string\",\"description\":\"Exact existing GamePrefab id.\"}," +
-            "\"operations\":{\"type\":\"array\",\"description\":\"Ordered atomic operations. Types: set, append, insert, remove, clear. Paths support members and [index].\",\"items\":{\"type\":\"object\",\"additionalProperties\":true}}," +
-            "\"maxDepth\":{\"type\":\"integer\",\"description\":\"Inspection and diff depth. Defaults to 8.\"}," +
-            "\"maxCollectionItems\":{\"type\":\"integer\",\"description\":\"Inspection collection limit. Defaults to 100.\"}" +
-            "},\"required\":[\"id\",\"operations\"]}";
+            "\"operations\":{\"type\":\"array\",\"minItems\":1,\"description\":\"Ordered atomic operations. Paths support members and [index].\",\"items\":{\"type\":\"object\",\"properties\":{" +
+            "\"type\":{\"type\":\"string\",\"enum\":[\"set\",\"append\",\"insert\",\"remove\",\"clear\"],\"description\":\"Operation kind.\"}," +
+            "\"path\":{\"type\":\"string\",\"description\":\"Member path, with optional [index] segments.\"}," +
+            "\"value\":{\"description\":\"Value used by set, append, or insert.\"}," +
+            "\"index\":{\"type\":\"integer\",\"description\":\"Collection index used by insert or remove.\"}" +
+            "},\"required\":[\"type\",\"path\"],\"additionalProperties\":false}}," +
+            "\"maxDepth\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":16,\"description\":\"Semantic diff and optional snapshot depth. Uses Preferences > VMFramework MCP when omitted; initially 8.\",\"x-unityMcpDefaultSource\":\"Preferences > VMFramework MCP > GamePrefab Inspection\",\"x-unityMcpExplicitValueWins\":true}," +
+            "\"maxCollectionItems\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":1000,\"description\":\"Items retained per collection in the semantic diff and optional snapshots. Uses Preferences > VMFramework MCP when omitted; initially 100.\",\"x-unityMcpDefaultSource\":\"Preferences > VMFramework MCP > GamePrefab Inspection\",\"x-unityMcpExplicitValueWins\":true}," +
+            "\"includeSnapshots\":{\"type\":\"boolean\",\"description\":\"Include complete before and after snapshots in addition to operation summaries and the semantic diff. Uses Preferences > VMFramework MCP when omitted; initially false.\",\"x-unityMcpDefaultSource\":\"Preferences > VMFramework MCP > GamePrefab Inspection\",\"x-unityMcpExplicitValueWins\":true}" +
+            "},\"required\":[\"id\",\"operations\"],\"additionalProperties\":false}";
 
         [MCPProjectTool(INSPECT_GAME_PREFAB_TOOL_NAME,
             Description = "Inspect the full serialized contents of one VMFramework GamePrefab, including nested configs, lists, arrays, Odin fields, and Unity asset references.",
@@ -42,8 +48,10 @@ namespace VMFramework.MCP.Editor
         {
             args ??= new();
             var info = GetSingleGamePrefabInfo(GetRequiredString(args, "id"));
-            var maxDepth = Math.Max(1, Math.Min(16, GetInt(args, "maxDepth", 8)));
-            var maxItems = Math.Max(1, Math.Min(1000, GetInt(args, "maxCollectionItems", 100)));
+            var maxDepth = VMFrameworkMcpSettingsManager.ResolvePreferenceInt(
+                args, "maxDepth", VMFrameworkMcpSettingsManager.GamePrefabInspectionMaxDepth, 1, 16);
+            var maxItems = VMFrameworkMcpSettingsManager.ResolvePreferenceInt(
+                args, "maxCollectionItems", VMFrameworkMcpSettingsManager.GamePrefabCollectionItemLimit, 1, 1000);
             return new Dictionary<string, object>
             {
                 { "gamePrefab", DescribeSerializedValue(info.gamePrefab, 0, maxDepth, maxItems,
@@ -54,7 +62,7 @@ namespace VMFramework.MCP.Editor
         }
 
         [MCPProjectTool(UPDATE_GAME_PREFAB_TOOL_NAME,
-            Description = "Atomically update an existing GamePrefab inside its Wrapper with nested paths, list/array/set edits, Unity asset references, Odin-serialized objects, and before/after diff.",
+            Description = "Atomically update an existing GamePrefab inside its Wrapper with nested paths, collection edits, Unity asset references, Odin-serialized objects, and a semantic diff.",
             InputSchemaJson = UPDATE_GAME_PREFAB_SCHEMA,
             MutatesAssets = true)]
         public static object UpdateGamePrefab(Dictionary<string, object> args)
@@ -71,8 +79,12 @@ namespace VMFramework.MCP.Editor
             var wrapperPath = info.wrapperPath;
             var absolutePath = Path.GetFullPath(wrapperPath);
             var snapshot = File.ReadAllBytes(absolutePath);
-            var maxDepth = Math.Max(1, Math.Min(16, GetInt(args, "maxDepth", 8)));
-            var maxItems = Math.Max(1, Math.Min(1000, GetInt(args, "maxCollectionItems", 100)));
+            var maxDepth = VMFrameworkMcpSettingsManager.ResolvePreferenceInt(
+                args, "maxDepth", VMFrameworkMcpSettingsManager.GamePrefabInspectionMaxDepth, 1, 16);
+            var maxItems = VMFrameworkMcpSettingsManager.ResolvePreferenceInt(
+                args, "maxCollectionItems", VMFrameworkMcpSettingsManager.GamePrefabCollectionItemLimit, 1, 1000);
+            bool includeSnapshots = VMFrameworkMcpSettingsManager.ResolvePreferenceBool(
+                args, "includeSnapshots", VMFrameworkMcpSettingsManager.IncludeGamePrefabUpdateSnapshots);
             var before = DescribeSerializedValue(info.gamePrefab, 0, maxDepth, maxItems,
                 new HashSet<object>(ReferenceComparer.Instance));
             var summaries = new List<Dictionary<string, object>>();
@@ -92,17 +104,21 @@ namespace VMFramework.MCP.Editor
                 var refreshedInfo = GetSingleGamePrefabInfo(id);
                 var after = DescribeSerializedValue(refreshedInfo.gamePrefab, 0, maxDepth, maxItems,
                     new HashSet<object>(ReferenceComparer.Instance));
-                return new Dictionary<string, object>
+                var result = new Dictionary<string, object>
                 {
                     { "success", true },
                     { "id", id },
                     { "wrapperPath", wrapperPath },
                     { "operationCount", operations.Count },
                     { "operations", summaries },
-                    { "before", before },
-                    { "after", after },
                     { "diff", BuildValueDiff(before, after) }
                 };
+                if (includeSnapshots)
+                {
+                    result["before"] = before;
+                    result["after"] = after;
+                }
+                return result;
             }
             catch
             {
@@ -130,7 +146,7 @@ namespace VMFramework.MCP.Editor
         private static Dictionary<string, object> ApplyGamePrefabOperation(object root,
             Dictionary<string, object> operation, int index)
         {
-            var type = GetFirstStringValue(operation, "type", "op", "action").ToLowerInvariant();
+            var type = GetRequiredString(operation, "type").ToLowerInvariant();
             var path = GetRequiredString(operation, "path");
             object before;
             object after;
@@ -816,16 +832,6 @@ namespace VMFramework.MCP.Editor
             return result;
         }
 
-        private static string GetFirstStringValue(IReadOnlyDictionary<string, object> args, params string[] keys)
-        {
-            foreach (var key in keys)
-            {
-                if (args.TryGetValue(key, out var value) && value != null &&
-                    !string.IsNullOrWhiteSpace(value.ToString())) return value.ToString();
-            }
-
-            return "";
-        }
     }
 }
 #endif

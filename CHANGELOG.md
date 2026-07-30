@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.1.0
+
+- Add team-owned GameTag validation settings under Project Settings and local
+  GamePrefab/trace response preferences under Preferences.
+- Reuse VM Unity MCP's shared primary-result preference for paginated VMFramework
+  reads instead of duplicating a result-limit setting.
+- Add `vmframework/get-configuration` and audit the exact 21-tool catalog.
+- Make large runtime, localization, provider, update-snapshot, and post-upsert
+  validation details opt-in.
+- Correct runtime-property and trace operation metadata, split trace schemas,
+  paginate retained events, and keep trace sequence numbers monotonic.
+- Reject unknown tool arguments and document the three-stage project-tool
+  contract, configuration ownership, and per-tool decisions.
+
 ## 2.0.0
 
 - Require VM Unity MCP 5.0.0 and its compact list, detailed get, and execute project-tool contract.

@@ -24,29 +24,40 @@ namespace VMFramework.MCP.Editor
             "\"managerInstanceID\":{\"type\":\"string\",\"description\":\"Exact decimal PropertyManager object id.\"}," +
             "\"gameObjectPath\":{\"type\":\"string\",\"description\":\"Scene GameObject path or name.\"}," +
             "\"managerIndex\":{\"type\":\"integer\",\"description\":\"PropertyManager index under the GameObject. Defaults to 0.\"}," +
+            "\"includeChildren\":{\"type\":\"boolean\",\"description\":\"Resolve PropertyManagers below the selected GameObject. Defaults to true.\"}," +
             "\"propertyName\":{\"type\":\"string\",\"description\":\"Exact property name.\"}" +
-            "},\"required\":[\"propertyName\"]}";
+            "},\"required\":[\"propertyName\"],\"additionalProperties\":false}";
 
         private const string SET_PROPERTY_SCHEMA =
             "{\"type\":\"object\",\"properties\":{" +
-            "\"managerInstanceID\":{\"type\":\"string\"},\"gameObjectPath\":{\"type\":\"string\"}," +
-            "\"managerIndex\":{\"type\":\"integer\"},\"propertyName\":{\"type\":\"string\"}," +
+            "\"managerInstanceID\":{\"type\":\"string\",\"description\":\"Exact decimal PropertyManager object id.\"}," +
+            "\"gameObjectPath\":{\"type\":\"string\",\"description\":\"Scene GameObject path or name.\"}," +
+            "\"managerIndex\":{\"type\":\"integer\",\"description\":\"PropertyManager index under the GameObject. Defaults to 0.\"}," +
+            "\"includeChildren\":{\"type\":\"boolean\",\"description\":\"Resolve PropertyManagers below the selected GameObject. Defaults to true.\"}," +
+            "\"propertyName\":{\"type\":\"string\",\"description\":\"Exact writable property name.\"}," +
             "\"value\":{\"description\":\"Typed value. Unity Object values accept an asset path or {assetPath}.\"}," +
             "\"initial\":{\"type\":\"boolean\",\"description\":\"Pass initial=true to SetObjectValue. Defaults to false.\"}" +
-            "},\"required\":[\"propertyName\",\"value\"]}";
+            "},\"required\":[\"propertyName\",\"value\"],\"additionalProperties\":false}";
 
-        private const string TRACE_SCHEMA =
+        private const string START_TRACE_SCHEMA =
             "{\"type\":\"object\",\"properties\":{" +
-            "\"managerInstanceID\":{\"type\":\"string\"},\"gameObjectPath\":{\"type\":\"string\"}," +
-            "\"managerIndex\":{\"type\":\"integer\"},\"propertyName\":{\"type\":\"string\",\"description\":\"Optional exact property filter.\"}," +
+            "\"managerInstanceID\":{\"type\":\"string\",\"description\":\"Exact decimal PropertyManager object id.\"}," +
+            "\"gameObjectPath\":{\"type\":\"string\",\"description\":\"Scene GameObject path or name. The current selection is used when both selectors are omitted.\"}," +
+            "\"propertyName\":{\"type\":\"string\",\"description\":\"Optional exact property filter.\"}," +
             "\"includeChildren\":{\"type\":\"boolean\",\"description\":\"Trace child PropertyManagers. Defaults to true.\"}," +
-            "\"maxEvents\":{\"type\":\"integer\",\"description\":\"Maximum retained events, 1-10000. Defaults to 1000.\"}," +
-            "\"clear\":{\"type\":\"boolean\",\"description\":\"Clear retained events before returning.\"}" +
-            "}}";
+            "\"maxEvents\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":10000,\"description\":\"Maximum retained events. Uses Preferences > VMFramework MCP when omitted; initially 1000.\",\"x-unityMcpDefaultSource\":\"Preferences > VMFramework MCP > Property Trace\",\"x-unityMcpExplicitValueWins\":true}" +
+            "},\"additionalProperties\":false}";
+
+        private const string READ_TRACE_SCHEMA =
+            "{\"type\":\"object\",\"properties\":{" +
+            "\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Event offset. Defaults to 0.\"}," +
+            "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":10000,\"description\":\"Maximum returned events. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 100.\",\"x-unityMcpDefaultSource\":\"Preferences > Unity MCP > Tool Responses\",\"x-unityMcpExplicitValueWins\":true}" +
+            "},\"additionalProperties\":false}";
 
         private static readonly Dictionary<IReadOnlyProperty, PropertyTraceTarget> propertyTraceTargets = new();
         private static readonly List<Dictionary<string, object>> propertyTraceEvents = new();
         private static int propertyTraceMaxEvents = 1000;
+        private static long propertyTraceSequence;
         private static bool propertyTraceActive;
 
         static VMFrameworkMcpTools()
@@ -70,11 +81,16 @@ namespace VMFramework.MCP.Editor
         }
 
         [MCPProjectTool(SET_PROPERTY_TOOL_NAME,
-            Description = "Set one writable VMFramework property using its runtime value type and return the before/after values.",
-            InputSchemaJson = SET_PROPERTY_SCHEMA)]
+            Description = "Set one writable VMFramework runtime property in Play Mode using its concrete value type.",
+            InputSchemaJson = SET_PROPERTY_SCHEMA,
+            MutatesRuntime = true,
+            RequiresPlayMode = true)]
         public static object SetProperty(Dictionary<string, object> args)
         {
             args ??= new();
+            if (!Application.isPlaying)
+                throw new InvalidOperationException("set-property requires Play Mode.");
+
             var manager = ResolvePropertyManager(args);
             var propertyName = GetRequiredString(args, "propertyName");
             if (!manager.Properties.TryGetValue(propertyName, out var readOnlyProperty))
@@ -86,60 +102,83 @@ namespace VMFramework.MCP.Editor
             var before = DescribeTypedProperty(manager, propertyName, readOnlyProperty);
             var valueType = GetPropertyValueType(readOnlyProperty);
             var converted = ConvertSerializedValue(rawValue, valueType, propertyName);
-            property.SetObjectValue(converted, GetBool(args, "initial", false));
+            bool initial = GetBool(args, "initial", false);
+            property.SetObjectValue(converted, initial);
+            var after = DescribeTypedProperty(manager, propertyName, readOnlyProperty);
             return new Dictionary<string, object>
             {
-                { "success", true }, { "before", before },
-                { "after", DescribeTypedProperty(manager, propertyName, readOnlyProperty) }
+                { "success", true },
+                { "managerInstanceID", before["managerInstanceID"] },
+                { "gameObjectPath", before["gameObjectPath"] },
+                { "propertyName", propertyName },
+                { "propertyType", before["propertyType"] },
+                { "valueType", before["valueType"] },
+                { "initial", initial },
+                { "before", before["value"] },
+                { "after", after["value"] },
+                { "beforeValueError", before["valueError"] },
+                { "afterValueError", after["valueError"] },
             };
         }
 
         [MCPProjectTool(START_PROPERTY_TRACE_TOOL_NAME,
             Description = "Start tracing dirty events from selected VMFramework PropertyManager properties.",
-            InputSchemaJson = TRACE_SCHEMA,
-            ReadOnly = true)]
+            InputSchemaJson = START_TRACE_SCHEMA,
+            MutatesRuntime = true)]
         public static object StartPropertyTrace(Dictionary<string, object> args)
         {
             args ??= new();
             StopPropertyTraceInternal();
             propertyTraceEvents.Clear();
-            propertyTraceMaxEvents = Math.Max(1, Math.Min(10000, GetInt(args, "maxEvents", 1000)));
+            propertyTraceSequence = 0;
+            propertyTraceMaxEvents = VMFrameworkMcpSettingsManager.ResolvePreferenceInt(
+                args, "maxEvents", VMFrameworkMcpSettingsManager.PropertyTraceMaxEvents, 1, 10000);
             var propertyName = GetString(args, "propertyName");
-            foreach (var manager in ResolvePropertyManagers(args))
+            var managers = ResolvePropertyManagers(args);
+            if (managers.Count == 0)
+                throw new InvalidOperationException("No PropertyManager matched the trace selectors.");
+
+            foreach (var manager in managers)
             {
                 foreach (var pair in manager.Properties)
                 {
                     if (!string.IsNullOrWhiteSpace(propertyName) && pair.Key != propertyName) continue;
+                    if (propertyTraceTargets.ContainsKey(pair.Value)) continue;
                     propertyTraceTargets[pair.Value] = new PropertyTraceTarget(manager, pair.Key);
                     pair.Value.OnDirty += OnTracedPropertyDirty;
                 }
             }
 
+            if (propertyTraceTargets.Count == 0)
+                throw new KeyNotFoundException(
+                    string.IsNullOrWhiteSpace(propertyName)
+                        ? "No traceable properties were found."
+                        : $"Property '{propertyName}' was not found on the matched PropertyManagers.");
+
             propertyTraceActive = true;
-            return DescribePropertyTrace("start");
+            return DescribePropertyTraceStatus("start");
         }
 
         [MCPProjectTool(GET_PROPERTY_TRACE_TOOL_NAME,
             Description = "Return retained VMFramework property-change trace events.",
-            InputSchemaJson = TRACE_SCHEMA,
+            InputSchemaJson = READ_TRACE_SCHEMA,
             ReadOnly = true)]
         public static object GetPropertyTrace(Dictionary<string, object> args)
         {
             args ??= new();
-            var result = DescribePropertyTrace("get");
-            if (GetBool(args, "clear", false)) propertyTraceEvents.Clear();
-            return result;
+            return DescribePropertyTrace("get", args);
         }
 
         [MCPProjectTool(STOP_PROPERTY_TRACE_TOOL_NAME,
             Description = "Stop VMFramework property-change tracing and return retained events.",
-            InputSchemaJson = TRACE_SCHEMA,
-            ReadOnly = true)]
+            InputSchemaJson = READ_TRACE_SCHEMA,
+            MutatesRuntime = true)]
         public static object StopPropertyTrace(Dictionary<string, object> args)
         {
+            args ??= new();
             var stoppedTargetCount = propertyTraceTargets.Count;
             StopPropertyTraceInternal();
-            var result = DescribePropertyTrace("stop");
+            var result = DescribePropertyTrace("stop", args);
             result["stoppedTargetCount"] = stoppedTargetCount;
             return result;
         }
@@ -202,22 +241,55 @@ namespace VMFramework.MCP.Editor
         {
             if (!propertyTraceTargets.TryGetValue(property, out var target)) return;
             if (propertyTraceEvents.Count >= propertyTraceMaxEvents) propertyTraceEvents.RemoveAt(0);
+            object value;
+            string valueError = "";
+            try
+            {
+                value = DescribeValue(property.ObjectValue);
+            }
+            catch (Exception ex)
+            {
+                value = null;
+                valueError = ex.Message;
+            }
             propertyTraceEvents.Add(new Dictionary<string, object>
             {
-                { "sequence", propertyTraceEvents.Count }, { "time", EditorApplication.timeSinceStartup },
+                { "sequence", propertyTraceSequence++ }, { "time", EditorApplication.timeSinceStartup },
                 { "initial", initial }, { "managerInstanceID", MCPObjectId.Get(target.Manager) },
                 { "gameObjectPath", GetGameObjectPath(target.Manager.transform) },
-                { "propertyName", target.PropertyName }, { "value", DescribeValue(property.ObjectValue) }
+                { "propertyName", target.PropertyName }, { "value", value }, { "valueError", valueError },
             });
         }
 
-        private static Dictionary<string, object> DescribePropertyTrace(string action)
+        private static Dictionary<string, object> DescribePropertyTrace(string action,
+            Dictionary<string, object> args)
         {
+            int offset = GetOffset(args);
+            int limit = VMFrameworkMcpSettingsManager.ResolveResultLimit(
+                args, "limit", 100, 10000);
+            var events = propertyTraceEvents.Skip(offset).Take(limit).ToList();
             return new Dictionary<string, object>
             {
                 { "success", true }, { "action", action }, { "active", propertyTraceActive },
-                { "targetCount", propertyTraceTargets.Count }, { "eventCount", propertyTraceEvents.Count },
-                { "events", new List<Dictionary<string, object>>(propertyTraceEvents) }
+                { "targetCount", propertyTraceTargets.Count },
+                { "events", events },
+                { "count", events.Count },
+                { "total", propertyTraceEvents.Count },
+                { "offset", offset },
+                { "limit", limit },
+                { "nextOffset", offset + events.Count < propertyTraceEvents.Count ? (object)(offset + events.Count) : null },
+            };
+        }
+
+        private static Dictionary<string, object> DescribePropertyTraceStatus(string action)
+        {
+            return new Dictionary<string, object>
+            {
+                { "success", true },
+                { "action", action },
+                { "active", propertyTraceActive },
+                { "targetCount", propertyTraceTargets.Count },
+                { "maxEvents", propertyTraceMaxEvents },
             };
         }
 

@@ -26,9 +26,10 @@ namespace VMFramework.MCP.Editor
             "\"id\":{\"type\":\"string\",\"description\":\"Optional exact GameTag id.\"}," +
             "\"filter\":{\"type\":\"string\",\"description\":\"Optional id, group name, group path, or localization key filter.\"}," +
             "\"groupPath\":{\"type\":\"string\",\"description\":\"Optional exact GameTagGroup asset path.\"}," +
-            "\"includeLocalizations\":{\"type\":\"boolean\",\"description\":\"Include localized values for every table locale. Defaults to true.\"}," +
-            "\"limit\":{\"type\":\"integer\",\"description\":\"Maximum returned tags. Defaults to 500.\"}" +
-            "}}";
+            "\"includeLocalizations\":{\"type\":\"boolean\",\"description\":\"Include potentially large localized values for every table locale. Defaults to false and remains request-owned.\"}," +
+            "\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Result offset. Defaults to 0.\"}," +
+            "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Maximum returned tags. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 500.\",\"x-unityMcpDefaultSource\":\"Preferences > Unity MCP > Tool Responses\",\"x-unityMcpExplicitValueWins\":true}" +
+            "},\"additionalProperties\":false}";
 
         private const string UPSERT_GAME_TAG_SCHEMA =
             "{\"type\":\"object\",\"properties\":{" +
@@ -41,17 +42,22 @@ namespace VMFramework.MCP.Editor
             "\"nameKey\":{\"type\":\"string\",\"description\":\"Localized name key. Defaults to <PascalId>TagName.\"}," +
             "\"descriptionKey\":{\"type\":\"string\",\"description\":\"Localized description key. Defaults to <PascalId>TagDescription.\"}," +
             "\"localizations\":{\"type\":\"array\",\"description\":\"Localized values by locale.\",\"items\":{\"type\":\"object\",\"properties\":{" +
-            "\"locale\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"}},\"required\":[\"locale\"],\"additionalProperties\":false}}," +
+            "\"locale\":{\"type\":\"string\",\"description\":\"Locale identifier or unique locale name.\"}," +
+            "\"name\":{\"type\":\"string\",\"description\":\"Localized tag name for this locale.\"}," +
+            "\"description\":{\"type\":\"string\",\"description\":\"Localized tag description for this locale.\"}" +
+            "},\"required\":[\"locale\"],\"additionalProperties\":false}}," +
             "\"registerGroup\":{\"type\":\"boolean\",\"description\":\"Register an unregistered target group in GameTagGeneralSetting. Defaults to true.\"}," +
-            "\"dryRun\":{\"type\":\"boolean\",\"description\":\"Validate and return the mutation plan without changing assets. Defaults to false.\"}" +
+            "\"dryRun\":{\"type\":\"boolean\",\"description\":\"Validate and return the mutation plan without changing assets. Defaults to false.\"}," +
+            "\"includeValidation\":{\"type\":\"boolean\",\"description\":\"Run and include a global GameTag validation after mutation. Defaults to false; call validate-game-tags for normal audits.\"}," +
+            "\"maxIssues\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Maximum issues returned when includeValidation is true. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 500.\"}" +
             "},\"required\":[\"id\"],\"additionalProperties\":false}";
 
         private const string VALIDATE_GAME_TAGS_SCHEMA =
             "{\"type\":\"object\",\"properties\":{" +
-            "\"includeMissingTranslations\":{\"type\":\"boolean\",\"description\":\"Report missing or empty locale values. Defaults to true.\"}," +
-            "\"includeGamePrefabReferences\":{\"type\":\"boolean\",\"description\":\"Check GamePrefab gameTags against registered tags. Defaults to true.\"}," +
-            "\"maxIssues\":{\"type\":\"integer\",\"description\":\"Maximum returned issues. Defaults to 500.\"}" +
-            "}}";
+            "\"includeMissingTranslations\":{\"type\":\"boolean\",\"description\":\"Report missing or empty locale values. Uses Project Settings > VMFramework MCP when omitted; initially true.\",\"x-unityMcpDefaultSource\":\"Project Settings > VMFramework MCP > GameTag Validation\",\"x-unityMcpExplicitValueWins\":true}," +
+            "\"includeGamePrefabReferences\":{\"type\":\"boolean\",\"description\":\"Check GamePrefab gameTags against registered tags. Uses Project Settings > VMFramework MCP when omitted; initially true.\",\"x-unityMcpDefaultSource\":\"Project Settings > VMFramework MCP > GameTag Validation\",\"x-unityMcpExplicitValueWins\":true}," +
+            "\"maxIssues\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Maximum returned issues. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 500.\",\"x-unityMcpDefaultSource\":\"Preferences > Unity MCP > Tool Responses\",\"x-unityMcpExplicitValueWins\":true}" +
+            "},\"additionalProperties\":false}";
 
         [MCPProjectTool(LIST_GAME_TAGS_TOOL_NAME,
             Description = "List registered VMFramework GameTags with source groups and localized references.",
@@ -64,15 +70,20 @@ namespace VMFramework.MCP.Editor
             string exactID = GetString(args, "id");
             string filter = GetString(args, "filter");
             string groupPath = GetString(args, "groupPath");
-            bool includeLocalizations = GetBool(args, "includeLocalizations", true);
-            int limit = Math.Max(1, Math.Min(5000, GetInt(args, "limit", 500)));
+            bool includeLocalizations = GetBool(args, "includeLocalizations", false);
+            int offset = GetOffset(args);
+            int limit = VMFrameworkMcpSettingsManager.ResolveResultLimit(
+                args, "limit", 500, 5000);
 
-            var sources = GetRegisteredGameTagSources(setting)
+            var allSources = GetRegisteredGameTagSources(setting)
                 .Where(source => string.IsNullOrWhiteSpace(exactID) ||
                                  string.Equals(source.Info?.id, exactID, StringComparison.Ordinal))
                 .Where(source => string.IsNullOrWhiteSpace(groupPath) ||
                                  string.Equals(source.GroupPath, groupPath, StringComparison.Ordinal))
                 .Where(source => MatchesGameTagFilter(source, filter))
+                .ToList();
+            var sources = allSources
+                .Skip(offset)
                 .Take(limit)
                 .Select(source => DescribeGameTagSource(source, includeLocalizations))
                 .ToList();
@@ -82,7 +93,10 @@ namespace VMFramework.MCP.Editor
                 { "generalSettingPath", AssetDatabase.GetAssetPath(setting) },
                 { "tags", sources },
                 { "count", sources.Count },
-                { "limit", limit }
+                { "total", allSources.Count },
+                { "offset", offset },
+                { "limit", limit },
+                { "nextOffset", offset + sources.Count < allSources.Count ? (object)(offset + sources.Count) : null },
             };
         }
 
@@ -231,9 +245,15 @@ namespace VMFramework.MCP.Editor
                 Info = readback[0],
                 Group = reloadedGroup,
                 GroupIndex = reloadedGroup.gameTagInfos.IndexOf(readback[0])
-            }, includeLocalizations: true);
-            planResult["validation"] = BuildGameTagValidation(setting, includeMissingTranslations: true,
-                includeGamePrefabReferences: true, maxIssues: 500);
+            }, includeLocalizations: false);
+            if (GetBool(args, "includeValidation", false))
+            {
+                planResult["validation"] = BuildGameTagValidation(
+                    setting,
+                    VMFrameworkMcpSettingsManager.IncludeMissingGameTagTranslations,
+                    VMFrameworkMcpSettingsManager.IncludeGamePrefabTagReferences,
+                    VMFrameworkMcpSettingsManager.ResolveResultLimit(args, "maxIssues", 500, 5000));
+            }
             return planResult;
         }
 
@@ -245,9 +265,13 @@ namespace VMFramework.MCP.Editor
         {
             args ??= new();
             return BuildGameTagValidation(ResolveGameTagGeneralSetting(),
-                GetBool(args, "includeMissingTranslations", true),
-                GetBool(args, "includeGamePrefabReferences", true),
-                Math.Max(1, Math.Min(5000, GetInt(args, "maxIssues", 500))));
+                VMFrameworkMcpSettingsManager.ResolveProjectBool(
+                    args, "includeMissingTranslations",
+                    VMFrameworkMcpSettingsManager.IncludeMissingGameTagTranslations),
+                VMFrameworkMcpSettingsManager.ResolveProjectBool(
+                    args, "includeGamePrefabReferences",
+                    VMFrameworkMcpSettingsManager.IncludeGamePrefabTagReferences),
+                VMFrameworkMcpSettingsManager.ResolveResultLimit(args, "maxIssues", 500, 5000));
         }
 
         private static GameTagGeneralSetting ResolveGameTagGeneralSetting()

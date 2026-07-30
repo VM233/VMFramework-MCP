@@ -37,8 +37,10 @@ namespace VMFramework.MCP.Editor
         private const string LIST_GAME_PREFAB_TYPES_INPUT_SCHEMA_JSON =
             "{\"type\":\"object\",\"properties\":{" +
             "\"filter\":{\"type\":\"string\",\"description\":\"Optional case-insensitive type name filter.\"}," +
-            "\"includeAbstract\":{\"type\":\"boolean\",\"description\":\"Include abstract and interface GamePrefab types. Defaults to false.\"}" +
-            "}}";
+            "\"includeAbstract\":{\"type\":\"boolean\",\"description\":\"Include abstract and interface GamePrefab types. Defaults to false.\"}," +
+            "\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Result offset. Defaults to 0.\"}," +
+            "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Maximum returned types. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 100.\",\"x-unityMcpDefaultSource\":\"Preferences > Unity MCP > Tool Responses\",\"x-unityMcpExplicitValueWins\":true}" +
+            "},\"additionalProperties\":false}";
 
         private const string ADD_GAME_PREFAB_INPUT_SCHEMA_JSON =
             "{\"type\":\"object\",\"properties\":{" +
@@ -46,44 +48,50 @@ namespace VMFramework.MCP.Editor
             "\"gamePrefabType\":{\"type\":\"string\",\"description\":\"Instantiable GamePrefab type name, full name, or assembly-qualified name.\"}," +
             "\"overwrite\":{\"type\":\"boolean\",\"description\":\"Replace an existing single-wrapper GamePrefab with the same id. Defaults to false.\"}," +
             "\"assetName\":{\"type\":\"string\",\"description\":\"Optional wrapper asset file name when creating a new GamePrefab.\"}," +
-            "\"serializedValues\":{\"type\":\"object\",\"description\":\"Optional serialized field or property values applied to the created GamePrefab.\"}" +
-            "},\"required\":[\"id\",\"gamePrefabType\"]}";
+            "\"serializedValues\":{\"type\":\"object\",\"description\":\"Optional serialized field or property values applied to the created GamePrefab.\",\"additionalProperties\":true}" +
+            "},\"required\":[\"id\",\"gamePrefabType\"],\"additionalProperties\":false}";
 
         private const string FIND_GAME_PREFAB_INPUT_SCHEMA_JSON =
             "{\"type\":\"object\",\"properties\":{" +
             "\"id\":{\"type\":\"string\",\"description\":\"Exact GamePrefab id to find.\"}," +
             "\"filter\":{\"type\":\"string\",\"description\":\"Case-insensitive id, wrapper path, or type filter.\"}," +
             "\"gamePrefabType\":{\"type\":\"string\",\"description\":\"Optional GamePrefab type name, full name, or assembly-qualified name filter.\"}," +
-            "\"limit\":{\"type\":\"integer\",\"description\":\"Maximum result count. Defaults to 100.\"}" +
-            "}}";
+            "\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Result offset. Defaults to 0.\"}," +
+            "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Maximum returned GamePrefabs. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 100.\",\"x-unityMcpDefaultSource\":\"Preferences > Unity MCP > Tool Responses\",\"x-unityMcpExplicitValueWins\":true}" +
+            "},\"additionalProperties\":false}";
 
         private const string INSPECT_GAME_PREFAB_WRAPPER_INPUT_SCHEMA_JSON =
             "{\"type\":\"object\",\"properties\":{" +
             "\"id\":{\"type\":\"string\",\"description\":\"GamePrefab id contained by the wrapper.\"}," +
             "\"wrapperPath\":{\"type\":\"string\",\"description\":\"Asset path of a GamePrefabWrapper.\"}," +
             "\"filter\":{\"type\":\"string\",\"description\":\"Optional wrapper path, wrapper name, GamePrefab id, or type filter.\"}," +
-            "\"limit\":{\"type\":\"integer\",\"description\":\"Maximum wrapper count when id and wrapperPath are omitted. Defaults to 50.\"}" +
-            "}}";
+            "\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Result offset. Defaults to 0.\"}," +
+            "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Maximum returned wrappers. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 50.\",\"x-unityMcpDefaultSource\":\"Preferences > Unity MCP > Tool Responses\",\"x-unityMcpExplicitValueWins\":true}" +
+            "},\"additionalProperties\":false}";
 
         private const string LIST_GENERAL_SETTINGS_INPUT_SCHEMA_JSON =
             "{\"type\":\"object\",\"properties\":{" +
             "\"filter\":{\"type\":\"string\",\"description\":\"Case-insensitive type, asset name, or path filter.\"}," +
-            "\"includeGamePrefabDetails\":{\"type\":\"boolean\",\"description\":\"Include GamePrefabGeneralSetting provider details. Defaults to true.\"}" +
-            "}}";
+            "\"includeGamePrefabDetails\":{\"type\":\"boolean\",\"description\":\"Include potentially large GamePrefabGeneralSetting provider details. Defaults to false and remains request-owned.\"}," +
+            "\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Result offset. Defaults to 0.\"}," +
+            "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Maximum returned settings. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 100.\",\"x-unityMcpDefaultSource\":\"Preferences > Unity MCP > Tool Responses\",\"x-unityMcpExplicitValueWins\":true}" +
+            "},\"additionalProperties\":false}";
 
         private const string PANEL_SOURCE_INPUT_SCHEMA_JSON =
             "{\"type\":\"object\",\"properties\":{" +
             "\"panelID\":{\"type\":\"string\",\"description\":\"UIPanelConfig id to inspect.\"}," +
             "\"prefabPath\":{\"type\":\"string\",\"description\":\"Panel prefab asset path to inspect.\"}," +
-            "\"includeRuntime\":{\"type\":\"boolean\",\"description\":\"Include runtime unique panel state when Play Mode is running. Defaults to true.\"}" +
-            "}}";
+            "\"includeRuntime\":{\"type\":\"boolean\",\"description\":\"Include runtime unique panel state when Play Mode is running. Defaults to false and remains request-owned.\"}" +
+            "},\"additionalProperties\":false}";
 
         private const string VALIDATE_VISUAL_ELEMENT_PATHS_INPUT_SCHEMA_JSON =
             "{\"type\":\"object\",\"properties\":{" +
             "\"panelID\":{\"type\":\"string\",\"description\":\"UIPanelConfig id to validate.\"}," +
             "\"prefabPath\":{\"type\":\"string\",\"description\":\"Panel prefab asset path to validate.\"}," +
-            "\"includeValid\":{\"type\":\"boolean\",\"description\":\"Include valid paths in the result. Defaults to false.\"}" +
-            "}}";
+            "\"includeValid\":{\"type\":\"boolean\",\"description\":\"Include valid paths in the result. Defaults to false and remains request-owned.\"}," +
+            "\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Reported-path offset. Defaults to 0.\"}," +
+            "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Maximum returned path records. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 100.\",\"x-unityMcpDefaultSource\":\"Preferences > Unity MCP > Tool Responses\",\"x-unityMcpExplicitValueWins\":true}" +
+            "},\"additionalProperties\":false}";
 
         private const string INSPECT_PROPERTY_MANAGER_INPUT_SCHEMA_JSON =
             "{\"type\":\"object\",\"properties\":{" +
@@ -91,9 +99,10 @@ namespace VMFramework.MCP.Editor
             "\"gameObjectPath\":{\"type\":\"string\",\"description\":\"Slash-separated scene GameObject path or GameObject name.\"}," +
             "\"propertyName\":{\"type\":\"string\",\"description\":\"Optional exact property name filter.\"}," +
             "\"includeChildren\":{\"type\":\"boolean\",\"description\":\"Inspect child PropertyManagers. Defaults to true.\"}," +
-            "\"useSelection\":{\"type\":\"boolean\",\"description\":\"Use selected GameObjects when prefabPath and gameObjectPath are omitted. Defaults to true.\"}," +
-            "\"limit\":{\"type\":\"integer\",\"description\":\"Maximum manager count when scanning loaded scenes. Defaults to 50.\"}" +
-            "}}";
+            "\"useSelection\":{\"type\":\"boolean\",\"description\":\"Use selected GameObjects when prefabPath and gameObjectPath are omitted. Defaults to false so omitted selectors scan loaded scenes deterministically.\"}," +
+            "\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Manager offset. Defaults to 0.\"}," +
+            "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Maximum returned managers. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 50.\",\"x-unityMcpDefaultSource\":\"Preferences > Unity MCP > Tool Responses\",\"x-unityMcpExplicitValueWins\":true}" +
+            "},\"additionalProperties\":false}";
 
         [MCPProjectTool(LIST_GAME_PREFAB_TYPES_TOOL_NAME,
             Description = "List VMFramework GamePrefab types and their matching GamePrefabGeneralSetting.",
@@ -104,8 +113,11 @@ namespace VMFramework.MCP.Editor
             args ??= new();
             string filter = GetString(args, "filter");
             bool includeAbstract = GetBool(args, "includeAbstract", false);
+            int offset = GetOffset(args);
+            int limit = VMFrameworkMcpSettingsManager.ResolveResultLimit(
+                args, "limit", 100, 5000);
 
-            var types = GetGamePrefabTypes(includeAbstract)
+            var allTypes = GetGamePrefabTypes(includeAbstract)
                 .Where(type => MatchesFilter(type.Name, filter) ||
                                MatchesFilter(type.FullName, filter) ||
                                MatchesFilter(type.AssemblyQualifiedName, filter))
@@ -120,16 +132,21 @@ namespace VMFramework.MCP.Editor
                         { "isAbstract", type.IsAbstract },
                         { "isInterface", type.IsInterface },
                         { "hasDefaultConstructor", type.GetConstructor(Type.EmptyTypes) != null },
-                        { "generalSetting", DescribeGeneralSetting(setting, includeGamePrefabDetails: true) }
+                        { "generalSetting", DescribeGeneralSetting(setting, includeGamePrefabDetails: false) }
                     };
                 })
                 .OrderBy(info => info["fullName"])
                 .ToList();
+            var types = allTypes.Skip(offset).Take(limit).ToList();
 
             return new Dictionary<string, object>
             {
                 { "types", types },
-                { "totalTypes", types.Count }
+                { "count", types.Count },
+                { "total", allTypes.Count },
+                { "offset", offset },
+                { "limit", limit },
+                { "nextOffset", offset + types.Count < allTypes.Count ? (object)(offset + types.Count) : null },
             };
         }
 
@@ -205,7 +222,7 @@ namespace VMFramework.MCP.Editor
                 { "id", id },
                 { "gamePrefab", DescribeGamePrefab(gamePrefab) },
                 { "wrapper", DescribeWrapper(wrapper, includeGamePrefabs: true) },
-                { "generalSetting", DescribeGeneralSetting(gamePrefabGeneralSetting, includeGamePrefabDetails: true) },
+                { "generalSetting", DescribeGeneralSetting(gamePrefabGeneralSetting, includeGamePrefabDetails: false) },
                 { "created", created },
                 { "replaced", replaced },
                 { "registered", gamePrefabGeneralSetting.initialGamePrefabProviders.Contains(wrapper) },
@@ -223,15 +240,21 @@ namespace VMFramework.MCP.Editor
             string id = GetString(args, "id");
             string filter = GetString(args, "filter");
             string typeName = GetString(args, "gamePrefabType");
-            int limit = Math.Max(1, GetInt(args, "limit", 100));
+            int offset = GetOffset(args);
+            int limit = VMFrameworkMcpSettingsManager.ResolveResultLimit(
+                args, "limit", 100, 5000);
             Type typeFilter = string.IsNullOrWhiteSpace(typeName) ? null : ResolveGamePrefabType(typeName, allowAbstract: true);
 
-            var infos = FindGamePrefabInfos(id, filter, typeFilter, limit);
+            var allInfos = FindGamePrefabInfos(id, filter, typeFilter, int.MaxValue);
+            var infos = allInfos.Skip(offset).Take(limit).ToList();
             return new Dictionary<string, object>
             {
                 { "gamePrefabs", infos.Select(DescribeGamePrefabInfo).ToList() },
                 { "count", infos.Count },
-                { "limit", limit }
+                { "total", allInfos.Count },
+                { "offset", offset },
+                { "limit", limit },
+                { "nextOffset", offset + infos.Count < allInfos.Count ? (object)(offset + infos.Count) : null },
             };
         }
 
@@ -245,16 +268,17 @@ namespace VMFramework.MCP.Editor
             string id = GetString(args, "id");
             string wrapperPath = GetString(args, "wrapperPath");
             string filter = GetString(args, "filter");
-            int limit = Math.Max(1, GetInt(args, "limit", 50));
+            int offset = GetOffset(args);
+            int limit = VMFrameworkMcpSettingsManager.ResolveResultLimit(
+                args, "limit", 50, 5000);
 
             var wrappers = new List<GamePrefabWrapper>();
             if (string.IsNullOrWhiteSpace(wrapperPath) == false)
             {
                 var wrapper = AssetDatabase.LoadAssetAtPath<GamePrefabWrapper>(wrapperPath);
-                if (wrapper != null)
-                {
-                    wrappers.Add(wrapper);
-                }
+                if (wrapper == null)
+                    throw new ArgumentException($"Could not load a GamePrefabWrapper at '{wrapperPath}'.");
+                wrappers.Add(wrapper);
             }
             else if (string.IsNullOrWhiteSpace(id) == false)
             {
@@ -262,19 +286,29 @@ namespace VMFramework.MCP.Editor
                     .Select(info => info.wrapper)
                     .Where(wrapper => wrapper != null)
                     .Distinct());
+                if (wrappers.Count == 0)
+                    throw new KeyNotFoundException($"GamePrefab '{id}' was not found.");
             }
             else
             {
                 wrappers.AddRange(GetAllGamePrefabWrappers()
-                    .Where(wrapper => WrapperMatches(wrapper, filter))
-                    .Take(limit));
+                    .Where(wrapper => WrapperMatches(wrapper, filter)));
             }
 
+            var allWrappers = wrappers
+                .Where(wrapper => wrapper != null)
+                .Distinct()
+                .OrderBy(wrapper => AssetDatabase.GetAssetPath(wrapper), StringComparer.Ordinal)
+                .ToList();
+            var page = allWrappers.Skip(offset).Take(limit).ToList();
             return new Dictionary<string, object>
             {
-                { "wrappers", wrappers.Select(wrapper => DescribeWrapper(wrapper, includeGamePrefabs: true)).ToList() },
-                { "count", wrappers.Count },
-                { "limit", limit }
+                { "wrappers", page.Select(wrapper => DescribeWrapper(wrapper, includeGamePrefabs: true)).ToList() },
+                { "count", page.Count },
+                { "total", allWrappers.Count },
+                { "offset", offset },
+                { "limit", limit },
+                { "nextOffset", offset + page.Count < allWrappers.Count ? (object)(offset + page.Count) : null },
             };
         }
 
@@ -286,9 +320,12 @@ namespace VMFramework.MCP.Editor
         {
             args ??= new();
             string filter = GetString(args, "filter");
-            bool includeDetails = GetBool(args, "includeGamePrefabDetails", true);
+            bool includeDetails = GetBool(args, "includeGamePrefabDetails", false);
+            int offset = GetOffset(args);
+            int limit = VMFrameworkMcpSettingsManager.ResolveResultLimit(
+                args, "limit", 100, 5000);
 
-            var settings = GetAllGeneralSettings()
+            var allSettings = GetAllGeneralSettings()
                 .Where(setting =>
                 {
                     if (setting is not Object obj)
@@ -305,12 +342,17 @@ namespace VMFramework.MCP.Editor
                 .Select(setting => DescribeGeneralSetting(setting, includeDetails))
                 .OrderBy(info => info["type"])
                 .ToList();
+            var settings = allSettings.Skip(offset).Take(limit).ToList();
 
             return new Dictionary<string, object>
             {
                 { "generalSettingsFolderPath", SafeGet(() => EditorSetting.GeneralSettingsAssetFolderPath) ?? ConfigurationPath.DEFAULT_GENERAL_SETTINGS_PATH },
                 { "settings", settings },
-                { "count", settings.Count }
+                { "count", settings.Count },
+                { "total", allSettings.Count },
+                { "offset", offset },
+                { "limit", limit },
+                { "nextOffset", offset + settings.Count < allSettings.Count ? (object)(offset + settings.Count) : null },
             };
         }
 
@@ -328,8 +370,8 @@ namespace VMFramework.MCP.Editor
                 { "panelID", source.panelID ?? "" },
                 { "config", DescribePanelConfig(source.config) },
                 { "prefab", DescribePanelPrefab(source.prefab) },
-                { "bindObjects", InspectBindObjects(source, includeRuntime: GetBool(args, "includeRuntime", true)) },
-                { "runtime", InspectRuntimePanel(source.panelID, GetBool(args, "includeRuntime", true)) }
+                { "bindObjects", InspectBindObjects(source, includeRuntime: GetBool(args, "includeRuntime", false)) },
+                { "runtime", InspectRuntimePanel(source.panelID, GetBool(args, "includeRuntime", false)) }
             };
         }
 
@@ -341,7 +383,7 @@ namespace VMFramework.MCP.Editor
         {
             args ??= new();
             var source = ResolvePanelSource(args);
-            return InspectBindObjects(source, includeRuntime: GetBool(args, "includeRuntime", true));
+            return InspectBindObjects(source, includeRuntime: GetBool(args, "includeRuntime", false));
         }
 
         [MCPProjectTool(VALIDATE_VISUAL_ELEMENT_PATHS_TOOL_NAME,
@@ -353,6 +395,9 @@ namespace VMFramework.MCP.Editor
             args ??= new();
             var source = ResolvePanelSource(args);
             bool includeValid = GetBool(args, "includeValid", false);
+            int offset = GetOffset(args);
+            int limit = VMFrameworkMcpSettingsManager.ResolveResultLimit(
+                args, "limit", 100, 5000);
 
             var visualTree = GetVisualTreeAsset(source.prefab);
             if (visualTree == null)
@@ -379,7 +424,7 @@ namespace VMFramework.MCP.Editor
                     records, new HashSet<object>(ReferenceEqualityComparer.Instance), 0, null);
             }
 
-            var results = new List<Dictionary<string, object>>();
+            var allResults = new List<Dictionary<string, object>>();
             int invalidCount = 0;
 
             foreach (var record in records)
@@ -393,20 +438,25 @@ namespace VMFramework.MCP.Editor
 
                 if (includeValid || isValid == false)
                 {
-                    results.Add(result);
+                    allResults.Add(result);
                 }
             }
+            var results = allResults.Skip(offset).Take(limit).ToList();
 
             return new Dictionary<string, object>
             {
                 { "valid", invalidCount == 0 },
                 { "invalidCount", invalidCount },
                 { "checkedCount", records.Count },
-                { "reportedCount", results.Count },
                 { "panelID", source.panelID ?? "" },
                 { "prefabPath", GetAssetPath(source.prefab) },
                 { "visualTreeAssetPath", GetAssetPath(visualTree) },
-                { "paths", results }
+                { "paths", results },
+                { "count", results.Count },
+                { "total", allResults.Count },
+                { "offset", offset },
+                { "limit", limit },
+                { "nextOffset", offset + results.Count < allResults.Count ? (object)(offset + results.Count) : null },
             };
         }
 
@@ -418,7 +468,7 @@ namespace VMFramework.MCP.Editor
         {
             args ??= new();
             var source = ResolvePanelSource(args);
-            bool includeRuntime = GetBool(args, "includeRuntime", true);
+            bool includeRuntime = GetBool(args, "includeRuntime", false);
 
             var modifiers = source.prefab.GetComponentsInChildren<UIToolkitContainerModifierBase>(true)
                 .Select(modifier => DescribeContainerModifier(modifier, includeRuntime))
@@ -444,8 +494,10 @@ namespace VMFramework.MCP.Editor
             string gameObjectPath = GetString(args, "gameObjectPath");
             string propertyName = GetString(args, "propertyName");
             bool includeChildren = GetBool(args, "includeChildren", true);
-            bool useSelection = GetBool(args, "useSelection", true);
-            int limit = Math.Max(1, GetInt(args, "limit", 50));
+            bool useSelection = GetBool(args, "useSelection", false);
+            int offset = GetOffset(args);
+            int limit = VMFrameworkMcpSettingsManager.ResolveResultLimit(
+                args, "limit", 50, 5000);
 
             var managers = new List<PropertyManager>();
             string sourceType;
@@ -484,12 +536,16 @@ namespace VMFramework.MCP.Editor
             {
                 sourceType = "loadedScenes";
                 managers.AddRange(Object.FindObjectsByType<PropertyManager>(FindObjectsInactive.Include,
-                    FindObjectsSortMode.None).Take(limit));
+                    FindObjectsSortMode.None));
             }
 
-            var distinctManagers = managers
+            var allManagers = managers
                 .Where(manager => manager != null)
                 .Distinct()
+                .OrderBy(manager => GetGameObjectPath(manager.transform), StringComparer.Ordinal)
+                .ToList();
+            var distinctManagers = allManagers
+                .Skip(offset)
                 .Take(limit)
                 .Select(manager => DescribePropertyManager(manager, propertyName))
                 .ToList();
@@ -501,7 +557,10 @@ namespace VMFramework.MCP.Editor
                 { "includeChildren", includeChildren },
                 { "managers", distinctManagers },
                 { "count", distinctManagers.Count },
-                { "limit", limit }
+                { "total", allManagers.Count },
+                { "offset", offset },
+                { "limit", limit },
+                { "nextOffset", offset + distinctManagers.Count < allManagers.Count ? (object)(offset + distinctManagers.Count) : null },
             };
         }
 
@@ -2092,6 +2151,11 @@ namespace VMFramework.MCP.Editor
             }
 
             return Convert.ToInt32(value, CultureInfo.InvariantCulture);
+        }
+
+        private static int GetOffset(Dictionary<string, object> args)
+        {
+            return Math.Max(0, GetInt(args, "offset", 0));
         }
 
         private static Dictionary<string, object> GetDictionary(Dictionary<string, object> args, string key)
