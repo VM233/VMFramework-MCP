@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.2.0
+
+- Add `vmframework/runtime-game-item-session` as the single owner for borrowing,
+  placement, property/faction setup, optional UI binding, idempotent session-key
+  reuse, and token-based cleanup of temporary runtime GameItems.
+- Add `vmframework/runtime-ui-panel` for open/close, bind/clear, actual
+  visibility inspection, and persistent OnOpen/OnPostClose waits.
+- Add `vmframework/procedure-state` and
+  `vmframework/logic-tick-control` for explicit state contracts, bounded
+  persistent waits, and controlled Logic Tick advancement.
+- Add `vmframework/inspect-runtime-game-item` for one-shot identity, GameTags,
+  Properties, Containers, project-domain Abilities/Faction, lifecycle, and
+  pool-state inspection.
+- Move semantic wrapper/GamePrefab/Prefab/component/GameTag/localization and
+  reverse-reference tracing into generic `vmframework/reference-trace`; large
+  reverse scans yield through persistent Jobs and support cancellation.
+- Add a priority-based project-domain adapter contract for authoritative facts
+  such as faction and abilities without introducing tag, name, hierarchy, or
+  UI-state inference.
+- Publish and enforce output schemas, stable domain error codes, precise side
+  effects, and cleanup metadata for the new runtime tools. Require VM Unity MCP
+  5.4.0 for persistent project-tool Jobs and schema-v4 metadata.
+
 ## 2.1.6
 
 - Keep the conditional VisualElementPath regression fixture independent of

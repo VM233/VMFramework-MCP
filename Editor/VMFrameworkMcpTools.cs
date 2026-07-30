@@ -1896,7 +1896,7 @@ namespace VMFramework.MCP.Editor
             };
         }
 
-        private static Dictionary<string, object> DescribeRuntimeObject(object obj)
+        internal static Dictionary<string, object> DescribeRuntimeObject(object obj)
         {
             if (obj == null)
             {
@@ -1921,7 +1921,7 @@ namespace VMFramework.MCP.Editor
             };
         }
 
-        private static object DescribeValue(object value)
+        internal static object DescribeValue(object value)
         {
             if (value == null)
             {
@@ -1971,7 +1971,7 @@ namespace VMFramework.MCP.Editor
             };
         }
 
-        private static Dictionary<string, object> DescribeContainer(IContainer container)
+        internal static Dictionary<string, object> DescribeContainer(IContainer container)
         {
             if (container == null)
             {
@@ -2287,7 +2287,7 @@ namespace VMFramework.MCP.Editor
             return obj == null ? "" : AssetDatabase.GetAssetPath(obj);
         }
 
-        private static string GetGameObjectPath(Transform transform)
+        internal static string GetGameObjectPath(Transform transform)
         {
             if (transform == null)
             {

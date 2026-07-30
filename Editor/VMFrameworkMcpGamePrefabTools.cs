@@ -412,7 +412,7 @@ namespace VMFramework.MCP.Editor
             return null;
         }
 
-        private static object ConvertSerializedValue(object value, Type targetType, string path)
+        internal static object ConvertSerializedValue(object value, Type targetType, string path)
         {
             if (value == null)
             {

@@ -24,10 +24,16 @@ namespace VMFramework.MCP.Editor.Tests
             "vmframework/inspect-game-prefab",
             "vmframework/inspect-game-prefab-wrapper",
             "vmframework/inspect-property-manager",
+            "vmframework/inspect-runtime-game-item",
             "vmframework/inspect-ui-panel",
             "vmframework/list-game-prefab-types",
             "vmframework/list-game-tags",
             "vmframework/list-general-settings",
+            "vmframework/logic-tick-control",
+            "vmframework/procedure-state",
+            "vmframework/reference-trace",
+            "vmframework/runtime-game-item-session",
+            "vmframework/runtime-ui-panel",
             "vmframework/set-property",
             "vmframework/start-property-trace",
             "vmframework/stop-property-trace",
@@ -36,6 +42,17 @@ namespace VMFramework.MCP.Editor.Tests
             "vmframework/validate-game-tags",
             "vmframework/validate-visual-element-paths",
         };
+
+        private static readonly HashSet<string> ExpectedFirstClassToolNames =
+            new(StringComparer.Ordinal)
+            {
+                "vmframework/inspect-runtime-game-item",
+                "vmframework/logic-tick-control",
+                "vmframework/procedure-state",
+                "vmframework/reference-trace",
+                "vmframework/runtime-game-item-session",
+                "vmframework/runtime-ui-panel",
+            };
 
         [Test]
         public void ProjectToolCatalog_IsCompleteStrictAndThreeStage()
@@ -54,8 +71,9 @@ namespace VMFramework.MCP.Editor.Tests
             {
                 string toolName = GetString(tool, "toolName");
                 Assert.That(tool["valid"], Is.EqualTo(true), toolName);
-                Assert.That(tool["firstClass"], Is.EqualTo(false),
-                    $"{toolName} must stay behind project-tools/list|get|execute.");
+                Assert.That(tool["firstClass"],
+                    Is.EqualTo(ExpectedFirstClassToolNames.Contains(toolName)),
+                    $"{toolName} has the wrong direct-exposure contract.");
 
                 int operationKinds =
                     (Convert.ToBoolean(tool["readOnly"]) ? 1 : 0) +
@@ -66,7 +84,58 @@ namespace VMFramework.MCP.Editor.Tests
                 var schema = RequireDictionary(tool["inputSchema"]);
                 Assert.That(schema["additionalProperties"], Is.EqualTo(false),
                     $"{toolName} must reject unknown business arguments.");
+
+                if (ExpectedFirstClassToolNames.Contains(toolName))
+                {
+                    Assert.That(tool["enforcesOutputSchema"], Is.EqualTo(true),
+                        $"{toolName} must provide and enforce outputSchema.");
+                    Assert.That(RequireDictionary(tool["outputSchema"])["type"],
+                        Is.EqualTo("object"), toolName);
+                    Assert.That(tool["errorCodes"], Is.InstanceOf<IList>(), toolName);
+                    Assert.That(((IList)tool["errorCodes"]).Count,
+                        Is.GreaterThan(0), toolName);
+                    Assert.That(tool["sideEffects"], Is.InstanceOf<IList>(), toolName);
+                    Assert.That(((IList)tool["sideEffects"]).Count,
+                        Is.GreaterThan(0), toolName);
+                }
             }
+        }
+
+        [Test]
+        public void NewRuntimeAndWaitTools_ExposeLifecycleAndIncrementalContracts()
+        {
+            var details = MCPProjectToolCommands.GetToolDetails(false)
+                .Where(tool => GetString(tool, "toolName").StartsWith(
+                    "vmframework/", StringComparison.Ordinal))
+                .ToDictionary(tool => GetString(tool, "toolName"));
+
+            var session = details["vmframework/runtime-game-item-session"];
+            Assert.That(session["cleanupAvailable"], Is.EqualTo(true));
+            Assert.That(session["cleanupToolName"],
+                Is.EqualTo("vmframework/runtime-game-item-session"));
+            CollectionAssert.Contains((IList)session["sideEffects"],
+                "createsTemporaryObjects");
+            CollectionAssert.Contains((IList)session["sideEffects"],
+                "changesRuntimeState");
+
+            foreach (string toolName in new[]
+                     {
+                         "vmframework/logic-tick-control",
+                         "vmframework/procedure-state",
+                         "vmframework/reference-trace",
+                         "vmframework/runtime-ui-panel",
+                     })
+            {
+                Assert.That(details[toolName]["incrementalJob"],
+                    Is.EqualTo(true), toolName);
+            }
+
+            CollectionAssert.Contains(
+                (IList)details["vmframework/logic-tick-control"]["sideEffects"],
+                "advancesLogicTicks");
+            CollectionAssert.Contains(
+                (IList)details["vmframework/reference-trace"]["sideEffects"],
+                "readsProjectState");
         }
 
         [Test]

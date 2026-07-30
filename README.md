@@ -18,9 +18,9 @@ as permanent concrete tools because the active Unity project can change.
 ## Requirements and installation
 
 - Unity 6000.4 or newer.
-- `com.vm233.unity-mcp` 5.3.4 or newer. This version enforces the `not` and
-  `const` constraints used by VMFramework MCP selector schemas before tool
-  invocation.
+- `com.vm233.unity-mcp` 5.4.0 or newer. This version enforces input/output
+  schemas and provides persistent project-tool Jobs, cleanup, error-code, and
+  side-effect metadata.
 - The VMFramework, VMCore, VM Odin Extensions, and Unity Localization
   dependencies declared by `package.json`.
 
@@ -42,6 +42,24 @@ families:
 - UI panel, bind-object, container-panel, and VisualElementPath inspection;
 - PropertyManager reads, runtime writes, and bounded traces;
 - GameTag listing, localized upsert, and validation.
+- owner-scoped runtime GameItem sessions with placement, properties, optional
+  project-domain faction setup, Panel binding, and token cleanup;
+- runtime Panel lifecycle, binding, actual visibility, and OnOpen/OnPostClose
+  waits;
+- Procedure state waits and Logic Tick query/control;
+- one-shot runtime GameItem inspection;
+- generic wrapper/GamePrefab/Prefab/component/GameTag/localization/dependency
+  and reverse-reference tracing.
+
+The runtime GameItem domain adapter is the only extension point for project
+facts that VMFramework does not own. Project implementations must read and
+mutate authoritative gameplay components; names, tags, Prefab paths, hierarchy,
+and UI state are not valid proxies for faction, abilities, or lifecycle.
+
+Long waits and reverse-reference scans use `runAsJob=true`. Poll the returned Job
+with `jobs/get`, cancel it through `jobs/cancel`, and call `jobs/cleanup` only
+when the Job reports an available cleanup token. Session creation also accepts a
+`sessionKey`; reusing it is valid only when every create argument matches.
 
 Single-panel UI tools require exactly one `panelID` or `prefabPath`.
 `vmframework/validate-visual-element-paths` additionally accepts
