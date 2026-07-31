@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.2
+
+- Require VM Unity MCP 5.5.2 so compact Editor-state snapshots always retain
+  an authoritative process-state tag while preserving the schema-v5
+  presence-only response contract.
+
 ## 2.3.1
 
 - Require VM Unity MCP 5.5.1 so `project-tools/get` preserves the exact

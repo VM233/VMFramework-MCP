@@ -1,6 +1,6 @@
 {
   "name": "com.vm233.vmframework-mcp",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "displayName": "VMFramework MCP",
   "description": "VM Unity MCP tools for VMFramework assets, runtime GameItem sessions, UI panels, Procedure and Logic Tick control, reference tracing, containers, tags, and properties.",
   "unity": "6000.4",
@@ -14,7 +14,7 @@
   "license": "MIT",
   "type": "tool",
   "dependencies": {
-    "com.vm233.unity-mcp": "5.5.1",
+    "com.vm233.unity-mcp": "5.5.2",
     "com.unity.localization": "1.5.12",
     "com.vm233.vm-odin-extensions": "1.0.0",
     "com.vm233.vmcore": "1.0.1",
