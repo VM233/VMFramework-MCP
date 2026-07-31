@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3.3
+
+- Fix `vmframework/update-game-prefab` transactions that rename the root ID:
+  post-save verification now resolves the new identity instead of looking up
+  the obsolete selector and rolling the transaction back.
+- Return the verified new `id` and the prior selector as `previousId`, reject
+  empty IDs, and cover the complete asset save/import/readback path with an
+  EditMode regression test.
+
 ## 2.3.2
 
 - Require VM Unity MCP 5.5.2 so compact Editor-state snapshots always retain

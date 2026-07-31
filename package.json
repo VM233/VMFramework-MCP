@@ -1,6 +1,6 @@
 {
   "name": "com.vm233.vmframework-mcp",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "displayName": "VMFramework MCP",
   "description": "VM Unity MCP tools for VMFramework assets, runtime GameItem sessions, UI panels, Procedure and Logic Tick control, reference tracing, containers, tags, and properties.",
   "unity": "6000.4",

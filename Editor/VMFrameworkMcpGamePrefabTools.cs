@@ -96,23 +96,33 @@ namespace VMFramework.MCP.Editor
                     summaries.Add(ApplyGamePrefabOperation(info.gamePrefab, operations[i], i));
                 }
 
+                string updatedId = info.gamePrefab.id;
+                if (string.IsNullOrWhiteSpace(updatedId))
+                {
+                    throw new InvalidOperationException("A GamePrefab update cannot leave its id empty.");
+                }
+
                 EditorUtility.SetDirty(info.wrapper);
                 AssetDatabase.SaveAssetIfDirty(info.wrapper);
                 AssetDatabase.ImportAsset(wrapperPath, ImportAssetOptions.ForceUpdate);
                 RefreshGamePrefabRegistry();
 
-                var refreshedInfo = GetSingleGamePrefabInfo(id);
+                var refreshedInfo = GetSingleGamePrefabInfo(updatedId);
                 var after = DescribeSerializedValue(refreshedInfo.gamePrefab, 0, maxDepth, maxItems,
                     new HashSet<object>(ReferenceComparer.Instance));
                 var result = new Dictionary<string, object>
                 {
                     { "success", true },
-                    { "id", id },
+                    { "id", updatedId },
                     { "wrapperPath", wrapperPath },
                     { "operationCount", operations.Count },
                     { "operations", summaries },
                     { "diff", BuildValueDiff(before, after) }
                 };
+                if (string.Equals(id, updatedId, StringComparison.Ordinal) == false)
+                {
+                    result["previousId"] = id;
+                }
                 if (includeSnapshots)
                 {
                     result["before"] = before;

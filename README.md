@@ -79,6 +79,10 @@ All schemas reject unknown business arguments. Selectors, paths, IDs,
 transaction operations, `dryRun`, overwrite choices, and registration choices
 remain explicit per request.
 
+`vmframework/update-game-prefab` supports semantic ID migration through a
+root `id` set operation. Its transaction validates and reads back the new ID,
+returns it as `id`, and includes `previousId` when the identity changed.
+
 ## Configuration
 
 Effective defaults use this order:

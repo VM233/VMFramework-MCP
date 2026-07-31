@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Tables;
+using VMFramework.GameLogicArchitecture;
 
 namespace VMFramework.MCP.Editor.Tests
 {
@@ -31,6 +33,11 @@ namespace VMFramework.MCP.Editor.Tests
         private sealed class LocalizedStringFixture
         {
             public LocalizedString name = new();
+        }
+
+        [Serializable]
+        private sealed class RenameFixtureGamePrefab : GamePrefab
+        {
         }
 
         [Test]
@@ -218,6 +225,67 @@ namespace VMFramework.MCP.Editor.Tests
 
             Assert.That(fixture.ranges[0].min, Is.EqualTo(2));
             Assert.That(fixture.ranges[0].max, Is.EqualTo(9));
+        }
+
+        [Test]
+        public void UpdateGamePrefab_RenamesIdAndReadsBackTheNewIdentity()
+        {
+            string suffix = Guid.NewGuid().ToString("N");
+            string oldId = $"vmframework_mcp_rename_{suffix}_old";
+            string newId = $"vmframework_mcp_rename_{suffix}_new";
+            const string testFolder = "Assets/__VMFrameworkMcpTests";
+            string wrapperPath = $"{testFolder}/RenameGamePrefab_{suffix}.asset";
+
+            if (AssetDatabase.IsValidFolder(testFolder) == false)
+            {
+                AssetDatabase.CreateFolder("Assets", "__VMFrameworkMcpTests");
+            }
+
+            var wrapper = UnityEngine.ScriptableObject.CreateInstance<GamePrefabSingleWrapper>();
+            wrapper.InitGamePrefabs(new IGamePrefab[]
+            {
+                new RenameFixtureGamePrefab { id = oldId }
+            });
+            AssetDatabase.CreateAsset(wrapper, wrapperPath);
+            AssetDatabase.SaveAssets();
+
+            try
+            {
+                var result = (Dictionary<string, object>)VMFrameworkMcpTools.UpdateGamePrefab(
+                    new Dictionary<string, object>
+                    {
+                        { "id", oldId },
+                        { "operations", new object[]
+                            {
+                                new Dictionary<string, object>
+                                {
+                                    { "type", "set" },
+                                    { "path", "id" },
+                                    { "value", newId }
+                                }
+                            }
+                        }
+                    });
+
+                Assert.That(result["id"], Is.EqualTo(newId));
+                Assert.That(result["previousId"], Is.EqualTo(oldId));
+
+                var oldMatches = (Dictionary<string, object>)VMFrameworkMcpTools.FindGamePrefab(
+                    new Dictionary<string, object> { { "id", oldId } });
+                var newMatches = (Dictionary<string, object>)VMFrameworkMcpTools.FindGamePrefab(
+                    new Dictionary<string, object> { { "id", newId } });
+                Assert.That(Convert.ToInt32(oldMatches["total"]), Is.Zero);
+                Assert.That(Convert.ToInt32(newMatches["total"]), Is.EqualTo(1));
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(wrapperPath);
+                if (AssetDatabase.IsValidFolder(testFolder) &&
+                    AssetDatabase.FindAssets("", new[] { testFolder }).Length == 0)
+                {
+                    AssetDatabase.DeleteAsset(testFolder);
+                }
+            }
         }
 
         private static MethodInfo GetPrivateMethod(string name)

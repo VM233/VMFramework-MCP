@@ -64,7 +64,7 @@ each VMFramework tool keeps its own hard maximum.
 | `inspect-container-panel` | None | Exactly one `panelID` or `prefabPath` is required; runtime state is request-owned and defaults off. |
 | `inspect-property-manager` | Shared result limit | Target, child traversal, property filter, and selection usage remain explicit. Omitted selectors scan loaded scenes rather than depending on hidden Editor selection. |
 | `inspect-game-prefab` | VMFramework depth/item preferences | Exact ID is a selector. |
-| `update-game-prefab` | VMFramework depth/item/snapshot preferences | ID and ordered operations define the mutation. Complete snapshots default off; bounded operation summaries and semantic diff remain. |
+| `update-game-prefab` | VMFramework depth/item/snapshot preferences | The request ID selects the existing object; ordered operations define the mutation. A root `id` set operation performs an atomic identity migration, and post-save verification follows the new ID. Complete snapshots default off; bounded operation summaries and semantic diff remain. |
 | `list-game-tags` | Shared result limit | ID/group/filter and locale-value expansion remain explicit; locale values default off. |
 | `upsert-game-tag` | None | Group, ID, localization keys/values, registration, and dry-run choices define the mutation. Framework `GameTagGeneralSetting` remains the localization-table authority. Global post-validation is opt-in because the dedicated validation tool owns normal audits. |
 | `validate-game-tags` | Team validation coverage; shared issue limit | Explicit coverage flags can narrow one call. |
@@ -105,7 +105,9 @@ from their owning VMFramework GeneralSettings.
 - A zero-match primary collection is preserved as an empty collection, so a
   completed queue ticket never loses the semantic result.
 - GamePrefab update replies always retain bounded operation summaries and a
-  semantic diff. Complete before/after snapshots are opt-in.
+  semantic diff. Complete before/after snapshots are opt-in. When an update
+  changes the root GamePrefab ID, `id` is the verified new identity and
+  `previousId` records the selector used by the request.
 - Upsert replies contain focused readback. A potentially large global GameTag
   validation is opt-in or obtained from `validate-game-tags`.
 - GameTag validation replies include the effective coverage flags so callers
