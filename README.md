@@ -18,9 +18,10 @@ as permanent concrete tools because the active Unity project can change.
 ## Requirements and installation
 
 - Unity 6000.4 or newer.
-- `com.vm233.unity-mcp` 5.5.0 or newer. This version enforces input/output
-  schemas and provides persistent project-tool Jobs, cleanup, error-code, and
-  schema-v5 presence tags plus exact side-effect metadata.
+- `com.vm233.unity-mcp` 5.5.1 or newer. This version enforces input/output
+  schemas, preserves those schemas as exact transport contracts, and provides
+  persistent project-tool Jobs, cleanup, error-code, schema-v5 presence tags,
+  and exact side-effect metadata.
 - The VMFramework, VMCore, VM Odin Extensions, and Unity Localization
   dependencies declared by `package.json`.
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3.1
+
+- Require VM Unity MCP 5.5.1 so `project-tools/get` preserves the exact
+  `reference-trace` output schema instead of interpreting its business `tags`
+  property as transport capability metadata.
+- Extend the configuration and ownership audit to the six runtime,
+  Procedure/Logic Tick, inspection, and reference-trace tools introduced in
+  2.2.0.
+
 ## 2.3.0
 
 - Adopt VM Unity MCP 5.5 schema-v5 tool metadata: positive capabilities use

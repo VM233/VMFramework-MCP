@@ -1,9 +1,10 @@
 # VMFramework MCP configuration and project-tool audit
 
-This document is the configuration review for the VMFramework MCP project-tool
-catalog. The tool-catalog regression test owns the exact list, requires one
-operation kind per tool, requires strict root schemas, and keeps every tool
-behind Unity MCP's `list -> get -> execute` project-extension contract.
+This document is the configuration review for the 27-tool VMFramework MCP
+project-tool catalog. The tool-catalog regression test owns the exact list,
+requires one operation kind per tool, requires strict root schemas, and keeps
+every tool behind Unity MCP's `list -> get -> execute` project-extension
+contract.
 
 ## Ownership and precedence
 
@@ -72,6 +73,12 @@ each VMFramework tool keeps its own hard maximum.
 | `start-property-trace` | VMFramework retained-event preference | Target/filter/child traversal remain explicit. Starting a trace mutates diagnostic session state and is not read-only. |
 | `get-property-trace` | Shared result limit | Offset/limit select a page; the call no longer exposes a hidden clear mutation. |
 | `stop-property-trace` | Shared result limit | Stopping mutates diagnostic session state; returned events are paginated. |
+| `runtime-game-item-session` | None | Action, GamePrefab ID, placement, properties, faction, optional Panel binding, and owner-scoped session key define the temporary runtime mutation. Cleanup can return only the item owned by that session; it cannot substitute for a project's spawn, death, drop, or arbitrary-pool-return semantics. |
+| `inspect-runtime-game-item` | None | Exactly one session token, Unity object ID, or GameObject path selects a live item. Generic identity, tags, properties, containers, and lifecycle remain framework-owned; abilities, faction, and other project facts come only from an explicit domain adapter. |
+| `runtime-ui-panel` | None | Panel ID, action, object selector, binding token/name, wait condition, and timeout remain explicit. Waits require a persistent Job, and actual visibility remains an explicit business boolean. |
+| `procedure-state` | None | State queries have no hidden target. Wait-set constraints, loading state, timeout, and `runAsJob` remain explicit because they define the requested lifecycle contract. |
+| `logic-tick-control` | None | Query/start/stop/advance/wait, tick count, target tick, timeout, and Job execution remain explicit. Advancing Logic Ticks is reported as an exact side effect. |
+| `reference-trace` | None | Query, semantic kind, property filter, reverse-reference choice, and graph/component/reference budgets remain explicit. Reverse-reference scans require a persistent Job; no hidden project root or type-name inference is used. |
 
 ## Values deliberately not configurable
 
@@ -103,3 +110,6 @@ from their owning VMFramework GeneralSettings.
   validation is opt-in or obtained from `validate-game-tags`.
 - GameTag validation replies include the effective coverage flags so callers
   can distinguish team defaults from an explicitly narrowed audit.
+- VM Unity MCP 5.5.1 or newer preserves `inputSchema` and `outputSchema`
+  verbatim, so the reference trace's business `tags` property remains an array
+  of tag records rather than being interpreted as capability metadata.
