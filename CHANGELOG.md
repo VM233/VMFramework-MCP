@@ -8,6 +8,8 @@
 - Return the verified new `id` and the prior selector as `previousId`, reject
   empty IDs, and cover the complete asset save/import/readback path with an
   EditMode regression test.
+- Declare the regression assembly's direct Odin serialization dependency so
+  package tests compile in consumer projects.
 
 ## 2.3.2
 

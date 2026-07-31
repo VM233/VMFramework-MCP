@@ -6,7 +6,8 @@
     "VMFramework.MCP.Editor",
     "VMFramework",
     "VMOdinExtensions",
-    "Unity.Localization"
+    "Unity.Localization",
+    "Sirenix.Serialization"
   ],
   "includePlatforms": [
     "Editor"
@@ -14,7 +15,9 @@
   "excludePlatforms": [],
   "allowUnsafeCode": false,
   "overrideReferences": false,
-  "precompiledReferences": [],
+  "precompiledReferences": [
+    "Sirenix.Serialization.dll"
+  ],
   "autoReferenced": false,
   "defineConstraints": [],
   "versionDefines": [],
