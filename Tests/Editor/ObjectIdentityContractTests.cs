@@ -7,6 +7,7 @@ using UnityMCP.Editor;
 
 namespace VMFramework.MCP.Editor.Tests
 {
+    [Category("VMFrameworkMCP.FullRegression")]
     public class ObjectIdentityContractTests
     {
         [Test]

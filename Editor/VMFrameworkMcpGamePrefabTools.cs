@@ -10,11 +10,12 @@ using UnityEditor;
 using UnityEngine;
 using UnityMCP.Editor;
 using VMFramework.GameLogicArchitecture;
+using static VMFramework.MCP.Editor.VMFrameworkMcpTools;
 using Object = UnityEngine.Object;
 
 namespace VMFramework.MCP.Editor
 {
-    public static partial class VMFrameworkMcpTools
+    public static class VMFrameworkMcpGamePrefabTools
     {
         private const string INSPECT_GAME_PREFAB_TOOL_NAME = "vmframework/inspect-game-prefab";
         private const string UPDATE_GAME_PREFAB_TOOL_NAME = "vmframework/update-game-prefab";
@@ -827,19 +828,6 @@ namespace VMFramework.MCP.Editor
             public static readonly ReferenceComparer Instance = new();
             public new bool Equals(object x, object y) => ReferenceEquals(x, y);
             public int GetHashCode(object obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
-        }
-
-        private static List<Dictionary<string, object>> GetDictionaryListValue(
-            IReadOnlyDictionary<string, object> args, string key)
-        {
-            var result = new List<Dictionary<string, object>>();
-            if (!args.TryGetValue(key, out var raw) || raw is not IEnumerable values) return result;
-            foreach (var value in values)
-            {
-                if (value is Dictionary<string, object> dictionary) result.Add(dictionary);
-            }
-
-            return result;
         }
 
     }

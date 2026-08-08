@@ -6,12 +6,13 @@ using VMFramework.GameLogicArchitecture;
 
 namespace VMFramework.MCP.Editor.Tests
 {
+    [Category("VMFrameworkMCP.FullRegression")]
     public sealed class GameTagToolTests
     {
         [Test]
         public void BuildDefaultGameTagKey_UsesFrameworkNamingConvention()
         {
-            MethodInfo method = typeof(VMFrameworkMcpTools).GetMethod("BuildDefaultGameTagKey",
+            MethodInfo method = typeof(VMFrameworkMcpGameTagTools).GetMethod("BuildDefaultGameTagKey",
                 BindingFlags.Static | BindingFlags.NonPublic);
             Assert.That(method, Is.Not.Null);
             Assert.That(method.Invoke(null, new object[] { "rotate_burst_item", "TagName" }),
@@ -23,7 +24,7 @@ namespace VMFramework.MCP.Editor.Tests
         [Test]
         public void UpsertGameTagInfo_CreatesThenUpdatesOneEntryWithLocalizedReferences()
         {
-            MethodInfo method = typeof(VMFrameworkMcpTools).GetMethod("UpsertGameTagInfo",
+            MethodInfo method = typeof(VMFrameworkMcpGameTagTools).GetMethod("UpsertGameTagInfo",
                 BindingFlags.Static | BindingFlags.NonPublic);
             Assert.That(method, Is.Not.Null);
             var group = ScriptableObject.CreateInstance<GameTagGroup>();

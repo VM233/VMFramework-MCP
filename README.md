@@ -6,22 +6,19 @@ with VMFramework's public concepts—GamePrefabs, GeneralSettings, GameTags,
 UI panels, containers, and properties—instead of asking callers to edit
 internal serialized fields.
 
-The tools use Unity MCP's bounded three-stage project-tool contract:
-
-1. `project-tools/list` returns compact summaries.
-2. `project-tools/get` returns the selected tool's complete schema.
-3. `project-tools/execute` validates and executes it.
-
-The companion Node server deliberately does not publish project-specific tools
-as permanent concrete tools because the active Unity project can change.
+The tools join VM Unity MCP's selected-instance canonical catalog. The
+companion server keeps a bounded bootstrap, searches this catalog by intent,
+gets one exact contract, and activates that tool as a direct typed call. An
+instance switch binds a different catalog, so project-specific tools never
+leak across Unity projects.
 
 ## Requirements and installation
 
 - Unity 6000.4 or newer.
-- `com.vm233.unity-mcp` 5.5.2 or newer. This version enforces input/output
-  schemas, preserves those schemas as exact transport contracts, and provides
-  persistent project-tool Jobs, cleanup, error-code, schema-v5 presence tags,
-  exact side-effect metadata, and an unambiguous compact Editor-state snapshot.
+- `com.vm233.unity-mcp` 6.0.0 or newer. This version provides the canonical
+  direct-route catalog, module/capability/operation search metadata, strict
+  schemas, persistent project-tool Jobs, cleanup, errors, preconditions, and
+  exact side-effect metadata.
 - The VMFramework, VMCore, VM Odin Extensions, and Unity Localization
   dependencies declared by `package.json`.
 
@@ -33,10 +30,10 @@ For reproducible projects, pin a commit in `Packages/manifest.json`:
 
 ## Project tools
 
-Use `project-tools/list` as the authoritative catalog, `project-tools/get` for
-the selected schema, and `project-tools/execute` only after validating the
-requested arguments. The package currently publishes these capability
-families:
+Use the companion server's `unity_tools_search` with intent or
+`moduleId: vmframework`, then `unity_tools_get` for one exact result. Call the
+activated typed tool directly with its published schema. The package currently
+publishes these capability families:
 
 - effective configuration and GeneralSettings discovery;
 - GamePrefab type discovery, search, inspection, creation, and atomic update;
@@ -128,9 +125,10 @@ per-tool ownership audit and response rules.
 
 ## Development
 
-Run the package's EditMode tests through Unity MCP's
-`testing/run-package-tests` workflow. The regression suite verifies the exact
-VMFramework tool catalog, operation metadata, strict schemas, settings
-round-tripping, and GamePrefab/GameTag conversion behavior.
+Run the package's EditMode tests through the activated
+`unity_testing_run_package_tests` tool or filter Unity Test Runner by
+`VMFrameworkMCP.FullRegression`. The regression suite verifies the exact
+VMFramework catalog, direct routes, operation metadata, strict schemas,
+settings round-tripping, and GamePrefab/GameTag conversion behavior.
 
 This package contains no runtime assembly.

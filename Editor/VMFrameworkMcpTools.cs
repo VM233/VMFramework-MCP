@@ -21,18 +21,13 @@ using Object = UnityEngine.Object;
 
 namespace VMFramework.MCP.Editor
 {
-    public static partial class VMFrameworkMcpTools
+    public static class VMFrameworkMcpTools
     {
         private const string LIST_GAME_PREFAB_TYPES_TOOL_NAME = "vmframework/list-game-prefab-types";
         private const string ADD_GAME_PREFAB_TOOL_NAME = "vmframework/add-game-prefab";
         private const string FIND_GAME_PREFAB_TOOL_NAME = "vmframework/find-game-prefab";
         private const string INSPECT_GAME_PREFAB_WRAPPER_TOOL_NAME = "vmframework/inspect-game-prefab-wrapper";
         private const string LIST_GENERAL_SETTINGS_TOOL_NAME = "vmframework/list-general-settings";
-        private const string INSPECT_UI_PANEL_TOOL_NAME = "vmframework/inspect-ui-panel";
-        private const string INSPECT_BIND_OBJECTS_TOOL_NAME = "vmframework/inspect-bind-objects";
-        private const string VALIDATE_VISUAL_ELEMENT_PATHS_TOOL_NAME = "vmframework/validate-visual-element-paths";
-        private const string INSPECT_CONTAINER_PANEL_TOOL_NAME = "vmframework/inspect-container-panel";
-        private const string INSPECT_PROPERTY_MANAGER_TOOL_NAME = "vmframework/inspect-property-manager";
 
         private const string LIST_GAME_PREFAB_TYPES_INPUT_SCHEMA_JSON =
             "{\"type\":\"object\",\"properties\":{" +
@@ -77,45 +72,6 @@ namespace VMFramework.MCP.Editor
             "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Maximum returned settings. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 100.\",\"x-unityMcpDefaultSource\":\"Preferences > Unity MCP > Tool Responses\",\"x-unityMcpExplicitValueWins\":true}" +
             "},\"additionalProperties\":false}";
 
-        private const string PANEL_SELECTOR_PROPERTIES_JSON =
-            "\"panelID\":{\"type\":\"string\",\"minLength\":1,\"description\":\"UIPanelConfig id.\"}," +
-            "\"prefabPath\":{\"type\":\"string\",\"minLength\":1,\"description\":\"Panel prefab asset path.\"}";
-
-        private const string PANEL_SELECTOR_ONE_OF_JSON =
-            "\"oneOf\":[" +
-            "{\"required\":[\"panelID\"],\"not\":{\"required\":[\"prefabPath\"]}}," +
-            "{\"required\":[\"prefabPath\"],\"not\":{\"required\":[\"panelID\"]}}" +
-            "]";
-
-        private const string PANEL_SOURCE_INPUT_SCHEMA_JSON =
-            "{\"type\":\"object\",\"properties\":{" +
-            PANEL_SELECTOR_PROPERTIES_JSON + "," +
-            "\"includeRuntime\":{\"type\":\"boolean\",\"description\":\"Include runtime unique panel state when Play Mode is running. Defaults to false and remains request-owned.\"}" +
-            "}," + PANEL_SELECTOR_ONE_OF_JSON + ",\"additionalProperties\":false}";
-
-        private const string VALIDATE_VISUAL_ELEMENT_PATHS_INPUT_SCHEMA_JSON =
-            "{\"type\":\"object\",\"properties\":{" +
-            PANEL_SELECTOR_PROPERTIES_JSON + "," +
-            "\"allPanels\":{\"type\":\"boolean\",\"description\":\"Validate every registered or prefab-backed VMFramework panel. Must be true and cannot be combined with panelID or prefabPath.\"}," +
-            "\"includeValid\":{\"type\":\"boolean\",\"description\":\"Include valid paths in the result. Defaults to false and remains request-owned.\"}," +
-            "\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Reported-path offset. Defaults to 0.\"}," +
-            "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Maximum returned path records. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 100.\",\"x-unityMcpDefaultSource\":\"Preferences > Unity MCP > Tool Responses\",\"x-unityMcpExplicitValueWins\":true}" +
-            "},\"oneOf\":[" +
-            "{\"required\":[\"panelID\"],\"not\":{\"anyOf\":[{\"required\":[\"prefabPath\"]},{\"required\":[\"allPanels\"]}]}}," +
-            "{\"required\":[\"prefabPath\"],\"not\":{\"anyOf\":[{\"required\":[\"panelID\"]},{\"required\":[\"allPanels\"]}]}}," +
-            "{\"required\":[\"allPanels\"],\"properties\":{\"allPanels\":{\"const\":true}},\"not\":{\"anyOf\":[{\"required\":[\"panelID\"]},{\"required\":[\"prefabPath\"]}]}}" +
-            "],\"additionalProperties\":false}";
-
-        private const string INSPECT_PROPERTY_MANAGER_INPUT_SCHEMA_JSON =
-            "{\"type\":\"object\",\"properties\":{" +
-            "\"prefabPath\":{\"type\":\"string\",\"description\":\"Prefab asset path whose PropertyManagers should be inspected.\"}," +
-            "\"gameObjectPath\":{\"type\":\"string\",\"description\":\"Slash-separated scene GameObject path or GameObject name.\"}," +
-            "\"propertyName\":{\"type\":\"string\",\"description\":\"Optional exact property name filter.\"}," +
-            "\"includeChildren\":{\"type\":\"boolean\",\"description\":\"Inspect child PropertyManagers. Defaults to true.\"}," +
-            "\"useSelection\":{\"type\":\"boolean\",\"description\":\"Use selected GameObjects when prefabPath and gameObjectPath are omitted. Defaults to false so omitted selectors scan loaded scenes deterministically.\"}," +
-            "\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Manager offset. Defaults to 0.\"}," +
-            "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Maximum returned managers. Uses the shared Unity MCP result preference when omitted; otherwise defaults to 50.\",\"x-unityMcpDefaultSource\":\"Preferences > Unity MCP > Tool Responses\",\"x-unityMcpExplicitValueWins\":true}" +
-            "},\"additionalProperties\":false}";
 
         [MCPProjectTool(LIST_GAME_PREFAB_TYPES_TOOL_NAME,
             Description = "List VMFramework GamePrefab types and their matching GamePrefabGeneralSetting.",
@@ -170,77 +126,37 @@ namespace VMFramework.MCP.Editor
         public static object AddGamePrefab(Dictionary<string, object> args)
         {
             args ??= new();
+            return VMFrameworkGamePrefabAuthoring.CreateOrReplace(
+                new VMFrameworkGamePrefabAuthoringRequest(
+                    GetRequiredString(args, "id"),
+                    ResolveGamePrefabType(GetRequiredString(args, "gamePrefabType")),
+                    GetBool(args, "overwrite", false),
+                    GetString(args, "assetName"),
+                    GetDictionary(args, "serializedValues")));
+        }
 
-            string id = GetRequiredString(args, "id");
-            Type gamePrefabType = ResolveGamePrefabType(GetRequiredString(args, "gamePrefabType"));
-            bool overwrite = GetBool(args, "overwrite", false);
-            string assetName = GetString(args, "assetName");
-            var serializedValues = GetDictionary(args, "serializedValues");
-            var warnings = new List<string>();
-
-            RefreshGamePrefabRegistry();
-
-            var existingInfos = FindGamePrefabInfos(id: id, filter: null, gamePrefabType: null, limit: int.MaxValue);
-            if (existingInfos.Count > 0 && overwrite == false)
+        internal static IGamePrefab CreateGamePrefab(string id, Type gamePrefabType,
+            Dictionary<string, object> serializedValues, List<string> warnings)
+        {
+            var gamePrefab = GamePrefabWrapperCreator.CreateDefaultGamePrefab(id, gamePrefabType);
+            if (gamePrefab == null)
             {
                 throw new InvalidOperationException(
-                    $"GamePrefab id '{id}' already exists in: {string.Join(", ", existingInfos.Select(info => info.wrapperPath))}");
+                    $"Could not create GamePrefab of type '{gamePrefabType.FullName}'.");
             }
 
-            IGamePrefab gamePrefab = CreateGamePrefab(id, gamePrefabType, serializedValues, warnings);
-            GamePrefabGeneralSetting gamePrefabGeneralSetting = ResolveGamePrefabGeneralSetting(gamePrefab);
+            if (serializedValues != null)
+                ApplySerializedValues(gamePrefab, serializedValues);
 
-            GamePrefabWrapper wrapper;
-            bool created;
-            bool replaced;
-
-            if (existingInfos.Count > 0)
+            if (gamePrefab is GamePrefab typedPrefab)
             {
-                if (existingInfos.Count > 1)
-                {
-                    throw new InvalidOperationException(
-                        $"GamePrefab id '{id}' exists in multiple wrappers. Refusing to overwrite.");
-                }
-
-                var existingInfo = existingInfos[0];
-                if (existingInfo.wrapper is not GamePrefabSingleWrapper singleWrapper)
-                {
-                    throw new InvalidOperationException(
-                        $"Existing wrapper '{existingInfo.wrapperPath}' is not a GamePrefabSingleWrapper.");
-                }
-
-                if (string.IsNullOrWhiteSpace(assetName) == false)
-                {
-                    warnings.Add("assetName is ignored when overwriting an existing GamePrefab.");
-                }
-
-                singleWrapper.InitGamePrefabs(new[] { gamePrefab });
-                wrapper = singleWrapper;
-                created = false;
-                replaced = true;
-            }
-            else
-            {
-                wrapper = CreateWrapper(gamePrefab, gamePrefabGeneralSetting, assetName);
-                created = true;
-                replaced = false;
+                if (typedPrefab.IsIDStartsWithPrefix == false)
+                    warnings.Add($"ID '{id}' does not start with expected prefix '{typedPrefab.IDPrefix}'.");
+                if (typedPrefab.IsIDEndsWithSuffix == false)
+                    warnings.Add($"ID '{id}' does not end with expected suffix '{typedPrefab.IDSuffix}'.");
             }
 
-            RegisterWrapper(gamePrefabGeneralSetting, wrapper);
-            wrapper = SaveAndRefresh(wrapper, gamePrefabGeneralSetting);
-            ValidateWrapperContainsGamePrefab(wrapper, id);
-
-            return new Dictionary<string, object>
-            {
-                { "id", id },
-                { "gamePrefab", DescribeGamePrefab(gamePrefab) },
-                { "wrapper", DescribeWrapper(wrapper, includeGamePrefabs: true) },
-                { "generalSetting", DescribeGeneralSetting(gamePrefabGeneralSetting, includeGamePrefabDetails: false) },
-                { "created", created },
-                { "replaced", replaced },
-                { "registered", gamePrefabGeneralSetting.initialGamePrefabProviders.Contains(wrapper) },
-                { "warnings", warnings }
-            };
+            return gamePrefab;
         }
 
         [MCPProjectTool(FIND_GAME_PREFAB_TOOL_NAME,
@@ -369,238 +285,8 @@ namespace VMFramework.MCP.Editor
             };
         }
 
-        [MCPProjectTool(INSPECT_UI_PANEL_TOOL_NAME,
-            Description = "Inspect a VMFramework UI panel prefab/config, UIDocument, VisualTreeAsset, modifiers, bind object names, and optional runtime state.",
-            InputSchemaJson = PANEL_SOURCE_INPUT_SCHEMA_JSON,
-            ReadOnly = true)]
-        public static object InspectUIPanel(Dictionary<string, object> args)
-        {
-            args ??= new();
-            var source = ResolvePanelSource(args);
 
-            return new Dictionary<string, object>
-            {
-                { "panelID", source.panelID ?? "" },
-                { "config", DescribePanelConfig(source.config) },
-                { "prefab", DescribePanelPrefab(source.prefab) },
-                { "bindObjects", InspectBindObjects(source, includeRuntime: GetBool(args, "includeRuntime", false)) },
-                { "runtime", InspectRuntimePanel(source.panelID, GetBool(args, "includeRuntime", false)) }
-            };
-        }
-
-        [MCPProjectTool(INSPECT_BIND_OBJECTS_TOOL_NAME,
-            Description = "Inspect VMFramework BindObjectsManager names, single-mode names, providers, and optional runtime bound object counts for a UI panel.",
-            InputSchemaJson = PANEL_SOURCE_INPUT_SCHEMA_JSON,
-            ReadOnly = true)]
-        public static object InspectBindObjects(Dictionary<string, object> args)
-        {
-            args ??= new();
-            var source = ResolvePanelSource(args);
-            return InspectBindObjects(source, includeRuntime: GetBool(args, "includeRuntime", false));
-        }
-
-        [MCPProjectTool(VALIDATE_VISUAL_ELEMENT_PATHS_TOOL_NAME,
-            Description = "Validate VisualElementPath fields on one or every VMFramework UI panel prefab against its UIDocument VisualTreeAsset.",
-            InputSchemaJson = VALIDATE_VISUAL_ELEMENT_PATHS_INPUT_SCHEMA_JSON,
-            ReadOnly = true)]
-        public static object ValidateVisualElementPaths(Dictionary<string, object> args)
-        {
-            args ??= new();
-            bool includeValid = GetBool(args, "includeValid", false);
-            int offset = GetOffset(args);
-            int limit = VMFrameworkMcpSettingsManager.ResolveResultLimit(
-                args, "limit", 100, 5000);
-
-            if (args.ContainsKey("allPanels"))
-            {
-                if (GetBool(args, "allPanels", false) == false)
-                {
-                    throw new ArgumentException("allPanels must be true when provided.");
-                }
-
-                if (string.IsNullOrWhiteSpace(GetString(args, "panelID")) == false ||
-                    string.IsNullOrWhiteSpace(GetString(args, "prefabPath")) == false)
-                {
-                    throw new ArgumentException(
-                        "allPanels cannot be combined with panelID or prefabPath.");
-                }
-
-                return ValidateAllVisualElementPaths(includeValid, offset, limit);
-            }
-
-            var source = ResolvePanelSource(args);
-            var validation = ValidateVisualElementPaths(source, includeValid);
-            if (validation.error != null)
-            {
-                return new Dictionary<string, object>
-                {
-                    { "valid", false },
-                    { "error", validation.error },
-                    { "panelID", source.panelID ?? "" },
-                    { "prefabPath", GetAssetPath(source.prefab) }
-                };
-            }
-
-            var results = validation.reportedPaths.Skip(offset).Take(limit).ToList();
-
-            return new Dictionary<string, object>
-            {
-                { "valid", validation.invalidCount == 0 },
-                { "invalidCount", validation.invalidCount },
-                { "checkedCount", validation.checkedCount },
-                { "panelID", source.panelID ?? "" },
-                { "prefabPath", GetAssetPath(source.prefab) },
-                { "visualTreeAssetPath", GetAssetPath(validation.visualTree) },
-                { "paths", results },
-                { "count", results.Count },
-                { "total", validation.reportedPaths.Count },
-                { "offset", offset },
-                { "limit", limit },
-                {
-                    "nextOffset",
-                    offset + results.Count < validation.reportedPaths.Count
-                        ? (object)(offset + results.Count)
-                        : null
-                },
-            };
-        }
-
-        [MCPProjectTool(INSPECT_CONTAINER_PANEL_TOOL_NAME,
-            Description = "Inspect VMFramework UIToolkitContainerModifierBase components, bind object names, slot distributor configs, and optional runtime slot/container state.",
-            InputSchemaJson = PANEL_SOURCE_INPUT_SCHEMA_JSON,
-            ReadOnly = true)]
-        public static object InspectContainerPanel(Dictionary<string, object> args)
-        {
-            args ??= new();
-            var source = ResolvePanelSource(args);
-            bool includeRuntime = GetBool(args, "includeRuntime", false);
-
-            var modifiers = source.prefab.GetComponentsInChildren<UIToolkitContainerModifierBase>(true)
-                .Select(modifier => DescribeContainerModifier(modifier, includeRuntime))
-                .ToList();
-
-            return new Dictionary<string, object>
-            {
-                { "panelID", source.panelID ?? "" },
-                { "prefabPath", GetAssetPath(source.prefab) },
-                { "containerPanelModifiers", modifiers },
-                { "count", modifiers.Count }
-            };
-        }
-
-        [MCPProjectTool(INSPECT_PROPERTY_MANAGER_TOOL_NAME,
-            Description = "Inspect VMFramework PropertyManager components on a prefab, selected GameObjects, a scene GameObject path, or loaded scenes.",
-            InputSchemaJson = INSPECT_PROPERTY_MANAGER_INPUT_SCHEMA_JSON,
-            ReadOnly = true)]
-        public static object InspectPropertyManager(Dictionary<string, object> args)
-        {
-            args ??= new();
-            string prefabPath = GetString(args, "prefabPath");
-            string gameObjectPath = GetString(args, "gameObjectPath");
-            string propertyName = GetString(args, "propertyName");
-            bool includeChildren = GetBool(args, "includeChildren", true);
-            bool useSelection = GetBool(args, "useSelection", false);
-            int offset = GetOffset(args);
-            int limit = VMFrameworkMcpSettingsManager.ResolveResultLimit(
-                args, "limit", 50, 5000);
-
-            var managers = new List<PropertyManager>();
-            string sourceType;
-
-            if (string.IsNullOrWhiteSpace(prefabPath) == false)
-            {
-                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-                if (prefab == null)
-                {
-                    throw new ArgumentException($"Could not load prefab at '{prefabPath}'.");
-                }
-
-                sourceType = "prefab";
-                AddPropertyManagers(prefab, managers, includeChildren);
-            }
-            else if (string.IsNullOrWhiteSpace(gameObjectPath) == false)
-            {
-                var gameObject = FindSceneGameObject(gameObjectPath);
-                if (gameObject == null)
-                {
-                    throw new ArgumentException($"Could not find scene GameObject '{gameObjectPath}'.");
-                }
-
-                sourceType = "sceneGameObject";
-                AddPropertyManagers(gameObject, managers, includeChildren);
-            }
-            else if (useSelection && Selection.gameObjects.Length > 0)
-            {
-                sourceType = "selection";
-                foreach (var gameObject in Selection.gameObjects)
-                {
-                    AddPropertyManagers(gameObject, managers, includeChildren);
-                }
-            }
-            else
-            {
-                sourceType = "loadedScenes";
-                managers.AddRange(Object.FindObjectsByType<PropertyManager>(FindObjectsInactive.Include,
-                    FindObjectsSortMode.None));
-            }
-
-            var allManagers = managers
-                .Where(manager => manager != null)
-                .Distinct()
-                .OrderBy(manager => GetGameObjectPath(manager.transform), StringComparer.Ordinal)
-                .ToList();
-            var distinctManagers = allManagers
-                .Skip(offset)
-                .Take(limit)
-                .Select(manager => DescribePropertyManager(manager, propertyName))
-                .ToList();
-
-            return new Dictionary<string, object>
-            {
-                { "sourceType", sourceType },
-                { "propertyName", propertyName ?? "" },
-                { "includeChildren", includeChildren },
-                { "managers", distinctManagers },
-                { "count", distinctManagers.Count },
-                { "total", allManagers.Count },
-                { "offset", offset },
-                { "limit", limit },
-                { "nextOffset", offset + distinctManagers.Count < allManagers.Count ? (object)(offset + distinctManagers.Count) : null },
-            };
-        }
-
-        private static IGamePrefab CreateGamePrefab(string id, Type gamePrefabType,
-            Dictionary<string, object> serializedValues, List<string> warnings)
-        {
-            var gamePrefab = GamePrefabWrapperCreator.CreateDefaultGamePrefab(id, gamePrefabType);
-            if (gamePrefab == null)
-            {
-                throw new InvalidOperationException(
-                    $"Could not create GamePrefab of type '{gamePrefabType.FullName}'.");
-            }
-
-            if (serializedValues != null)
-            {
-                ApplySerializedValues(gamePrefab, serializedValues);
-            }
-
-            if (gamePrefab is GamePrefab typedPrefab)
-            {
-                if (typedPrefab.IsIDStartsWithPrefix == false)
-                {
-                    warnings.Add($"ID '{id}' does not start with expected prefix '{typedPrefab.IDPrefix}'.");
-                }
-
-                if (typedPrefab.IsIDEndsWithSuffix == false)
-                {
-                    warnings.Add($"ID '{id}' does not end with expected suffix '{typedPrefab.IDSuffix}'.");
-                }
-            }
-
-            return gamePrefab;
-        }
-
-        private static GamePrefabWrapper CreateWrapper(IGamePrefab gamePrefab,
+        internal static GamePrefabWrapper CreateWrapper(IGamePrefab gamePrefab,
             GamePrefabGeneralSetting gamePrefabGeneralSetting, string assetName)
         {
             string path = string.IsNullOrWhiteSpace(assetName)
@@ -618,7 +304,7 @@ namespace VMFramework.MCP.Editor
             return wrapper;
         }
 
-        private static void RegisterWrapper(GamePrefabGeneralSetting targetSetting, GamePrefabWrapper wrapper)
+        internal static void RegisterWrapper(GamePrefabGeneralSetting targetSetting, GamePrefabWrapper wrapper)
         {
             foreach (var setting in GetAllGamePrefabGeneralSettings())
             {
@@ -636,7 +322,7 @@ namespace VMFramework.MCP.Editor
             targetSetting.AddToInitialGamePrefabProviders(wrapper);
         }
 
-        private static GamePrefabWrapper SaveAndRefresh(GamePrefabWrapper wrapper,
+        internal static GamePrefabWrapper SaveAndRefresh(GamePrefabWrapper wrapper,
             GamePrefabGeneralSetting gamePrefabGeneralSetting)
         {
             string wrapperPath = GetAssetPath(wrapper);
@@ -655,7 +341,7 @@ namespace VMFramework.MCP.Editor
             return wrapper;
         }
 
-        private static void ValidateWrapperContainsGamePrefab(GamePrefabWrapper wrapper, string id)
+        internal static void ValidateWrapperContainsGamePrefab(GamePrefabWrapper wrapper, string id)
         {
             var gamePrefabs = GetGamePrefabs(wrapper);
             if (gamePrefabs.Any(gamePrefab => gamePrefab != null &&
@@ -668,7 +354,7 @@ namespace VMFramework.MCP.Editor
                 $"GamePrefab wrapper '{GetAssetPath(wrapper)}' was saved but does not contain GamePrefab id '{id}'.");
         }
 
-        private static GamePrefabGeneralSetting ResolveGamePrefabGeneralSetting(IGamePrefab gamePrefab)
+        internal static GamePrefabGeneralSetting ResolveGamePrefabGeneralSetting(IGamePrefab gamePrefab)
         {
             var gamePrefabGeneralSetting = GetGamePrefabGeneralSetting(gamePrefab.GetType());
             if (gamePrefabGeneralSetting == null)
@@ -680,7 +366,7 @@ namespace VMFramework.MCP.Editor
             return gamePrefabGeneralSetting;
         }
 
-        private static Type ResolveGamePrefabType(string typeName, bool allowAbstract = false)
+        internal static Type ResolveGamePrefabType(string typeName, bool allowAbstract = false)
         {
             var matches = GetGamePrefabTypes(includeAbstract: allowAbstract)
                 .Where(type => string.Equals(type.AssemblyQualifiedName, typeName, StringComparison.Ordinal) ||
@@ -702,7 +388,7 @@ namespace VMFramework.MCP.Editor
             return matches[0];
         }
 
-        private static List<Type> GetGamePrefabTypes(bool includeAbstract)
+        internal static List<Type> GetGamePrefabTypes(bool includeAbstract)
         {
             return AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(GetLoadableTypes)
@@ -714,7 +400,7 @@ namespace VMFramework.MCP.Editor
                 .ToList();
         }
 
-        private static GamePrefabGeneralSetting GetGamePrefabGeneralSetting(Type gamePrefabType)
+        internal static GamePrefabGeneralSetting GetGamePrefabGeneralSetting(Type gamePrefabType)
         {
             foreach (var setting in GetAllGamePrefabGeneralSettings())
             {
@@ -727,7 +413,7 @@ namespace VMFramework.MCP.Editor
             return null;
         }
 
-        private static List<GamePrefabGeneralSetting> GetAllGamePrefabGeneralSettings()
+        internal static List<GamePrefabGeneralSetting> GetAllGamePrefabGeneralSettings()
         {
             return GetAllGeneralSettings()
                 .OfType<GamePrefabGeneralSetting>()
@@ -736,7 +422,7 @@ namespace VMFramework.MCP.Editor
                 .ToList();
         }
 
-        private static IEnumerable<IGeneralSetting> GetAllGeneralSettings()
+        internal static IEnumerable<IGeneralSetting> GetAllGeneralSettings()
         {
             var seen = new HashSet<Object>();
 
@@ -774,7 +460,7 @@ namespace VMFramework.MCP.Editor
             }
         }
 
-        private static IEnumerable<string> GetGeneralSettingsSearchFolders()
+        internal static IEnumerable<string> GetGeneralSettingsSearchFolders()
         {
             var folders = new[]
             {
@@ -785,13 +471,13 @@ namespace VMFramework.MCP.Editor
             return folders.Where(folder => string.IsNullOrWhiteSpace(folder) == false).Distinct();
         }
 
-        private static IEnumerable<GamePrefabWrapper> GetAllGamePrefabWrappers()
+        internal static IEnumerable<GamePrefabWrapper> GetAllGamePrefabWrappers()
         {
             return SafeEnumerable(GamePrefabWrapperQueryTools.GetAllGamePrefabWrappers)
                 .Where(wrapper => wrapper != null);
         }
 
-        private static List<GamePrefabInfo> FindGamePrefabInfos(string id, string filter, Type gamePrefabType, int limit)
+        internal static List<GamePrefabInfo> FindGamePrefabInfos(string id, string filter, Type gamePrefabType, int limit)
         {
             var infos = new List<GamePrefabInfo>();
             foreach (var wrapper in GetAllGamePrefabWrappers())
@@ -838,7 +524,7 @@ namespace VMFramework.MCP.Editor
             return infos;
         }
 
-        private static bool MatchesGamePrefabFilter(IGamePrefab gamePrefab, GamePrefabWrapper wrapper,
+        internal static bool MatchesGamePrefabFilter(IGamePrefab gamePrefab, GamePrefabWrapper wrapper,
             string wrapperPath, string filter)
         {
             if (string.IsNullOrWhiteSpace(filter))
@@ -853,7 +539,7 @@ namespace VMFramework.MCP.Editor
                    MatchesFilter(wrapperPath, filter);
         }
 
-        private static bool WrapperMatches(GamePrefabWrapper wrapper, string filter)
+        internal static bool WrapperMatches(GamePrefabWrapper wrapper, string filter)
         {
             if (wrapper == null)
             {
@@ -874,7 +560,7 @@ namespace VMFramework.MCP.Editor
             return GetGamePrefabs(wrapper).Any(gamePrefab => MatchesGamePrefabFilter(gamePrefab, wrapper, path, filter));
         }
 
-        private static List<IGamePrefab> GetGamePrefabs(GamePrefabWrapper wrapper)
+        internal static List<IGamePrefab> GetGamePrefabs(GamePrefabWrapper wrapper)
         {
             var gamePrefabs = new List<IGamePrefab>();
             if (wrapper == null)
@@ -894,820 +580,7 @@ namespace VMFramework.MCP.Editor
             return gamePrefabs;
         }
 
-        private static PanelSource ResolvePanelSource(Dictionary<string, object> args)
-        {
-            string panelID = GetString(args, "panelID");
-            string prefabPath = GetString(args, "prefabPath");
-            bool hasPanelID = string.IsNullOrWhiteSpace(panelID) == false;
-            bool hasPrefabPath = string.IsNullOrWhiteSpace(prefabPath) == false;
-
-            if (hasPanelID == hasPrefabPath)
-            {
-                throw new ArgumentException(
-                    "Exactly one panel selector is required: panelID or prefabPath.");
-            }
-
-            if (hasPrefabPath)
-            {
-                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-                if (prefab == null)
-                {
-                    throw new ArgumentException($"Could not load prefab at '{prefabPath}'.");
-                }
-
-                return new PanelSource
-                {
-                    panelID = panelID,
-                    prefab = prefab,
-                    config = FindPanelConfigByPrefab(prefab)
-                };
-            }
-
-            var info = FindGamePrefabInfos(panelID, null, typeof(UIPanelConfig), 1).FirstOrDefault();
-            if (info?.gamePrefab is not UIPanelConfig config)
-            {
-                throw new ArgumentException($"Could not find UIPanelConfig with id '{panelID}'.");
-            }
-
-            if (config.prefab == null)
-            {
-                throw new InvalidOperationException($"UIPanelConfig '{panelID}' has no prefab.");
-            }
-
-            return new PanelSource
-            {
-                panelID = panelID,
-                config = config,
-                prefab = config.prefab,
-                wrapper = info.wrapper
-            };
-        }
-
-        private static object ValidateAllVisualElementPaths(bool includeValid, int offset, int limit)
-        {
-            var sources = FindAllPanelSources();
-            var allPaths = new List<Dictionary<string, object>>();
-            int checkedCount = 0;
-            int invalidCount = 0;
-            int invalidPanelCount = 0;
-            int missingPrefabCount = 0;
-            int missingVisualTreeCount = 0;
-
-            foreach (var source in sources)
-            {
-                var validation = ValidateVisualElementPaths(source, includeValid);
-                checkedCount += validation.checkedCount;
-                invalidCount += validation.invalidCount;
-
-                if (validation.error != null)
-                {
-                    invalidPanelCount++;
-                    if (source.prefab == null)
-                    {
-                        missingPrefabCount++;
-                    }
-                    else
-                    {
-                        missingVisualTreeCount++;
-                    }
-
-                    allPaths.Add(new Dictionary<string, object>
-                    {
-                        { "valid", false },
-                        { "panelID", source.panelID ?? "" },
-                        { "prefabPath", GetAssetPath(source.prefab) },
-                        { "error", validation.error }
-                    });
-                    continue;
-                }
-
-                if (validation.invalidCount > 0)
-                {
-                    invalidPanelCount++;
-                }
-
-                foreach (var path in validation.reportedPaths)
-                {
-                    path["panelID"] = source.panelID ?? "";
-                    path["prefabPath"] = GetAssetPath(source.prefab);
-                    path["visualTreeAssetPath"] = GetAssetPath(validation.visualTree);
-                    allPaths.Add(path);
-                }
-            }
-
-            var paths = allPaths.Skip(offset).Take(limit).ToList();
-            return new Dictionary<string, object>
-            {
-                { "mode", "allPanels" },
-                { "valid", invalidPanelCount == 0 },
-                { "panelCount", sources.Count },
-                { "invalidPanelCount", invalidPanelCount },
-                { "missingPrefabCount", missingPrefabCount },
-                { "missingVisualTreeCount", missingVisualTreeCount },
-                { "checkedCount", checkedCount },
-                { "invalidPathCount", invalidCount },
-                { "invalidCount", invalidCount + missingPrefabCount + missingVisualTreeCount },
-                { "paths", paths },
-                { "count", paths.Count },
-                { "total", allPaths.Count },
-                { "offset", offset },
-                { "limit", limit },
-                {
-                    "nextOffset",
-                    offset + paths.Count < allPaths.Count
-                        ? (object)(offset + paths.Count)
-                        : null
-                }
-            };
-        }
-
-        private static List<PanelSource> FindAllPanelSources()
-        {
-            var sourcesByKey = new Dictionary<string, PanelSource>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var info in FindGamePrefabInfos(null, null, typeof(UIPanelConfig), int.MaxValue))
-            {
-                if (info.gamePrefab is not UIPanelConfig config)
-                {
-                    continue;
-                }
-
-                string prefabPath = GetAssetPath(config.prefab);
-                string key = string.IsNullOrWhiteSpace(prefabPath)
-                    ? $"config:{config.id}"
-                    : $"prefab:{prefabPath}";
-                sourcesByKey[key] = new PanelSource
-                {
-                    panelID = config.id,
-                    config = config,
-                    prefab = config.prefab,
-                    wrapper = info.wrapper
-                };
-            }
-
-            foreach (string guid in AssetDatabase.FindAssets("t:Prefab"))
-            {
-                string prefabPath = AssetDatabase.GUIDToAssetPath(guid);
-                string key = $"prefab:{prefabPath}";
-                if (sourcesByKey.ContainsKey(key))
-                {
-                    continue;
-                }
-
-                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-                if (prefab == null || prefab.GetComponentInChildren<UIPanel>(true) == null)
-                {
-                    continue;
-                }
-
-                sourcesByKey[key] = new PanelSource
-                {
-                    panelID = null,
-                    config = null,
-                    prefab = prefab
-                };
-            }
-
-            return sourcesByKey.Values
-                .OrderBy(source => source.panelID ?? "", StringComparer.Ordinal)
-                .ThenBy(source => GetAssetPath(source.prefab), StringComparer.Ordinal)
-                .ToList();
-        }
-
-        private static PanelValidationResult ValidateVisualElementPaths(PanelSource source, bool includeValid)
-        {
-            var validation = new PanelValidationResult();
-            if (source?.prefab == null)
-            {
-                validation.error = "Panel source has no prefab.";
-                return validation;
-            }
-
-            validation.visualTree = GetVisualTreeAsset(source.prefab);
-            if (validation.visualTree == null)
-            {
-                validation.error = "Panel prefab has no UIDocument VisualTreeAsset.";
-                return validation;
-            }
-
-            var root = validation.visualTree.CloneTree();
-            var records = new List<VisualElementPathRecord>();
-            foreach (var component in source.prefab.GetComponentsInChildren<Component>(true))
-            {
-                if (component == null)
-                {
-                    continue;
-                }
-
-                ScanVisualElementPaths(component,
-                    GetGameObjectPath(component.transform) + "/" + component.GetType().Name,
-                    records, new HashSet<object>(ReferenceEqualityComparer.Instance), 0, null);
-            }
-
-            validation.checkedCount = records.Count;
-            foreach (var record in records)
-            {
-                var result = ValidateVisualElementPath(root, record);
-                bool isValid = (bool)result["valid"];
-                if (isValid == false)
-                {
-                    validation.invalidCount++;
-                }
-
-                if (includeValid || isValid == false)
-                {
-                    validation.reportedPaths.Add(result);
-                }
-            }
-
-            return validation;
-        }
-
-        private static UIPanelConfig FindPanelConfigByPrefab(GameObject prefab)
-        {
-            string prefabPath = AssetDatabase.GetAssetPath(prefab);
-            foreach (var info in FindGamePrefabInfos(null, null, typeof(UIPanelConfig), int.MaxValue))
-            {
-                if (info.gamePrefab is UIPanelConfig config &&
-                    config.prefab != null &&
-                    AssetDatabase.GetAssetPath(config.prefab) == prefabPath)
-                {
-                    return config;
-                }
-            }
-
-            return null;
-        }
-
-        private static Dictionary<string, object> DescribePanelConfig(UIPanelConfig config)
-        {
-            if (config == null)
-            {
-                return null;
-            }
-
-            var result = DescribeGamePrefab(config);
-            result["sortingOrder"] = config.sortingOrder;
-            result["isUnique"] = config.isUnique;
-            result["prefabPath"] = GetAssetPath(config.prefab);
-
-            if (config is UIToolkitPanelConfig toolkitConfig)
-            {
-                result["useDefaultPanelSettings"] = toolkitConfig.useDefaultPanelSettings;
-                result["customPanelSettingsPath"] = GetAssetPath(toolkitConfig.customPanelSettings);
-                result["panelSettingsPath"] = GetSafePanelSettingsPath(toolkitConfig);
-                result["ignoreMouseEvents"] = toolkitConfig.ignoreMouseEvents;
-                result["closeMode"] = toolkitConfig.closeMode.ToString();
-            }
-
-            return result;
-        }
-
-        private static string GetSafePanelSettingsPath(UIToolkitPanelConfig config)
-        {
-            try
-            {
-                return GetAssetPath(config.PanelSettings);
-            }
-            catch (Exception ex)
-            {
-                if (config.useDefaultPanelSettings &&
-                    GetGamePrefabGeneralSetting(typeof(UIPanelConfig)) is UIPanelGeneralSetting setting)
-                {
-                    string defaultPanelSettingsPath = GetAssetPath(setting.panelSettings);
-                    if (string.IsNullOrWhiteSpace(defaultPanelSettingsPath) == false)
-                    {
-                        return defaultPanelSettingsPath;
-                    }
-                }
-
-                return $"<unavailable: {ex.GetType().Name}>";
-            }
-        }
-
-        private static Dictionary<string, object> DescribePanelPrefab(GameObject prefab)
-        {
-            if (prefab == null)
-            {
-                return null;
-            }
-
-            var uiDocument = prefab.GetComponentInChildren<UIDocument>(true);
-            var modifiers = prefab.GetComponentsInChildren<IPanelModifier>(true)
-                .OfType<Component>()
-                .Select(DescribeComponent)
-                .ToList();
-
-            return new Dictionary<string, object>
-            {
-                { "name", prefab.name },
-                { "path", GetAssetPath(prefab) },
-                { "hasUIPanel", prefab.GetComponentInChildren<UIPanel>(true) != null },
-                { "uiDocumentPath", uiDocument == null ? "" : GetGameObjectPath(uiDocument.transform) },
-                { "visualTreeAssetPath", uiDocument?.visualTreeAsset == null ? "" : GetAssetPath(uiDocument.visualTreeAsset) },
-                { "panelSettingsPath", uiDocument?.panelSettings == null ? "" : GetAssetPath(uiDocument.panelSettings) },
-                { "bindObjectsManagerCount", prefab.GetComponentsInChildren<BindObjectsManager>(true).Length },
-                { "panelModifierCount", modifiers.Count },
-                { "panelModifiers", modifiers }
-            };
-        }
-
-        private static Dictionary<string, object> InspectBindObjects(PanelSource source, bool includeRuntime)
-        {
-            var managerInfos = source.prefab.GetComponentsInChildren<BindObjectsManager>(true)
-                .Select(manager => DescribeBindObjectsManager(manager, includeRuntime))
-                .ToList();
-
-            return new Dictionary<string, object>
-            {
-                { "panelID", source.panelID ?? "" },
-                { "prefabPath", GetAssetPath(source.prefab) },
-                { "managers", managerInfos },
-                { "managerCount", managerInfos.Count },
-                { "runtime", InspectRuntimeBindObjects(source.panelID, includeRuntime) }
-            };
-        }
-
-        private static Dictionary<string, object> DescribeBindObjectsManager(BindObjectsManager manager,
-            bool includeRuntime)
-        {
-            var names = new HashSet<string> { BindObjectsManager.GLOBAL_BIND_NAME };
-            var singleModeNames = new HashSet<string>();
-            var providers = new List<Dictionary<string, object>>();
-
-            foreach (var provider in manager.GetComponentsInChildren<IBindObjectsNamesProvider>(true))
-            {
-                var beforeNames = names.Count;
-                var beforeSingle = singleModeNames.Count;
-                try
-                {
-                    provider.GetBindObjectsNames(names, singleModeNames);
-                }
-                catch (Exception ex)
-                {
-                    providers.Add(new Dictionary<string, object>
-                    {
-                        { "type", provider.GetType().FullName },
-                        { "error", ex.Message }
-                    });
-                    continue;
-                }
-
-                providers.Add(new Dictionary<string, object>
-                {
-                    { "type", provider.GetType().FullName },
-                    { "gameObjectPath", provider is Component component ? GetGameObjectPath(component.transform) : "" },
-                    { "addedNameCount", names.Count - beforeNames },
-                    { "addedSingleModeNameCount", singleModeNames.Count - beforeSingle },
-                    { "details", DescribeBindObjectsNamesProvider(provider) }
-                });
-            }
-
-            return new Dictionary<string, object>
-            {
-                { "gameObjectPath", GetGameObjectPath(manager.transform) },
-                { "type", manager.GetType().FullName },
-                { "names", names.OrderBy(name => name).ToList() },
-                { "singleModeNames", singleModeNames.OrderBy(name => name).ToList() },
-                { "providers", providers },
-                { "isInitialized", manager.IsInitialized },
-                { "runtimeObjectCounts", includeRuntime && manager.IsInitialized ? DescribeBindObjectCounts(manager, names) : null }
-            };
-        }
-
-        private static Dictionary<string, object> DescribeBindObjectsNamesProvider(IBindObjectsNamesProvider provider)
-        {
-            if (provider is PreDefinedBindObjectsNames predefined)
-            {
-                return new Dictionary<string, object>
-                {
-                    { "names", predefined.names.ToArray() },
-                    { "singleModeNames", predefined.singleModeNames.ToArray() },
-                    { "useGameObjectNames", predefined.useGameObjectNames }
-                };
-            }
-
-            return new Dictionary<string, object>();
-        }
-
-        private static Dictionary<string, object> InspectRuntimePanel(string panelID, bool includeRuntime)
-        {
-            if (includeRuntime == false || Application.isPlaying == false || string.IsNullOrWhiteSpace(panelID))
-            {
-                return null;
-            }
-
-            var panel = GetRuntimePanel(panelID);
-            if (panel == null)
-            {
-                return new Dictionary<string, object>
-                {
-                    { "found", false },
-                    { "isPlaying", Application.isPlaying }
-                };
-            }
-
-            return new Dictionary<string, object>
-            {
-                { "found", true },
-                { "id", panel.id },
-                { "type", panel.GetType().FullName },
-                { "isOpened", panel.IsOpened },
-                { "isClosing", panel.IsClosing },
-                { "uiEnabled", panel.UIEnabled },
-                { "modifierCount", panel.Modifiers.Count },
-                { "bindObjects", panel.BindObjectsManager == null ? null : DescribeBindObjectsManager(panel.BindObjectsManager, includeRuntime: true) }
-            };
-        }
-
-        private static Dictionary<string, object> InspectRuntimeBindObjects(string panelID, bool includeRuntime)
-        {
-            if (includeRuntime == false || Application.isPlaying == false || string.IsNullOrWhiteSpace(panelID))
-            {
-                return null;
-            }
-
-            var panel = GetRuntimePanel(panelID);
-            if (panel?.BindObjectsManager == null)
-            {
-                return new Dictionary<string, object> { { "found", false } };
-            }
-
-            return DescribeBindObjectsManager(panel.BindObjectsManager, includeRuntime: true);
-        }
-
-        private static IUIPanel GetRuntimePanel(string panelID)
-        {
-            return SafeGet(() =>
-            {
-                var manager = UIPanelManager.Instance;
-                return manager != null && manager.TryGetUniquePanel(panelID, out var panel) ? panel : null;
-            });
-        }
-
-        private static Dictionary<string, object> DescribeBindObjectCounts(BindObjectsManager manager,
-            IEnumerable<string> names)
-        {
-            var counts = new Dictionary<string, object>();
-            foreach (string name in names)
-            {
-                var objects = manager.GetObjects(name);
-                counts[name] = new Dictionary<string, object>
-                {
-                    { "count", objects.Count },
-                    { "objects", objects.Take(20).Select(DescribeRuntimeObject).ToList() }
-                };
-            }
-
-            return counts;
-        }
-
-        private static Dictionary<string, object> DescribeContainerModifier(UIToolkitContainerModifierBase modifier,
-            bool includeRuntime)
-        {
-            var configs = modifier.slotDistributorConfigs
-                .Select(DescribeContainerSlotDistributorConfig)
-                .ToList();
-
-            return new Dictionary<string, object>
-            {
-                { "type", modifier.GetType().FullName },
-                { "gameObjectPath", GetGameObjectPath(modifier.transform) },
-                { "bindObjectsName", modifier.bindObjectsName ?? "" },
-                { "slotDistributorConfigs", configs },
-                { "slotDistributorConfigCount", configs.Count },
-                { "isInitialized", modifier.IsInitialized },
-                { "runtime", includeRuntime && modifier.IsInitialized ? DescribeRuntimeContainerModifier(modifier) : null }
-            };
-        }
-
-        private static Dictionary<string, object> DescribeContainerSlotDistributorConfig(
-            ContainerSlotDistributorConfig config)
-        {
-            var result = new Dictionary<string, object>
-            {
-                { "parentName", config.parentName ?? "" },
-                { "findMethod", config.findMethod.ToString() },
-                { "slotName", config.slotName ?? "" },
-                { "removeExtraSlots", config.removeExtraSlots },
-                { "isFinite", config.isFinite },
-                { "startSlotIndex", config.startSlotIndex },
-                { "slotIndexRange", DescribeRange(config.slotIndexRange) },
-                { "autoFill", config.autoFill },
-                { "hasCustomContainer", config.hasCustomContainer },
-                { "customContainerName", config.customContainerName ?? "" },
-                { "containerName", config.ContainerName ?? "" },
-                { "startIndex", config.StartIndex },
-                { "count", config.Count == int.MaxValue ? "int.MaxValue" : config.Count.ToString(CultureInfo.InvariantCulture) }
-            };
-
-            result["slotNameBindings"] = config.slotNameBindings
-                .Select(binding => new Dictionary<string, object>
-                {
-                    { "slotName", binding.slotName ?? "" },
-                    { "slotIndex", binding.slotIndex }
-                })
-                .ToList();
-
-            return result;
-        }
-
-        private static Dictionary<string, object> DescribeRuntimeContainerModifier(UIToolkitContainerModifierBase modifier)
-        {
-            IContainer container = null;
-            try
-            {
-                container = modifier.Panel?.BindObjectsManager?.GetObject(modifier.bindObjectsName) as IContainer;
-            }
-            catch (Exception ex)
-            {
-                return new Dictionary<string, object>
-                {
-                    { "error", ex.Message },
-                    { "slotCount", modifier.Slots.Count }
-                };
-            }
-
-            return new Dictionary<string, object>
-            {
-                { "slotCount", modifier.Slots.Count },
-                { "container", DescribeContainer(container) }
-            };
-        }
-
-        private static Dictionary<string, object> DescribePropertyManager(PropertyManager manager,
-            string propertyName)
-        {
-            var properties = manager.Properties
-                .Where(pair => string.IsNullOrWhiteSpace(propertyName) || pair.Key == propertyName)
-                .Select(pair => DescribeProperty(pair.Key, pair.Value))
-                .ToList();
-
-            return new Dictionary<string, object>
-            {
-                { "gameObjectPath", GetGameObjectPath(manager.transform) },
-                { "type", manager.GetType().FullName },
-                { "propertyCount", manager.Properties.Count },
-                { "reportedPropertyCount", properties.Count },
-                { "properties", properties }
-            };
-        }
-
-        private static Dictionary<string, object> DescribeProperty(string name, IReadOnlyProperty property)
-        {
-            object value = null;
-            string valueError = "";
-            try
-            {
-                value = property.ObjectValue;
-            }
-            catch (Exception ex)
-            {
-                valueError = ex.Message;
-            }
-
-            return new Dictionary<string, object>
-            {
-                { "name", name },
-                { "type", property.GetType().FullName },
-                { "owner", DescribeRuntimeObject(property.Owner) },
-                { "value", DescribeValue(value) },
-                { "valueError", valueError }
-            };
-        }
-
-        private static Dictionary<string, object> ValidateVisualElementPath(VisualElement root,
-            VisualElementPathRecord record)
-        {
-            var names = record.path?.names ?? new List<string>();
-            string joinedPath = string.Join("/", names);
-            var result = new Dictionary<string, object>
-            {
-                { "owner", record.owner },
-                { "member", record.member },
-                { "path", joinedPath },
-                { "required", record.required },
-                { "expectedTypes", record.allowedTypes.Select(type => type.Name).ToArray() }
-            };
-
-            if (record.path == null || names.Count == 0)
-            {
-                result["valid"] = record.required == false;
-                if (record.required)
-                {
-                    result["error"] = "Required VisualElementPath is empty.";
-                }
-                else
-                {
-                    result["skipped"] = true;
-                    result["reason"] = "Optional VisualElementPath is empty.";
-                }
-
-                return result;
-            }
-
-            var element = record.path.Query(root);
-            if (element == null)
-            {
-                result["valid"] = false;
-                result["error"] = "VisualElementPath was not found.";
-                return result;
-            }
-
-            if (record.allowedTypes.Count > 0 && record.allowedTypes.Any(type => type.IsInstanceOfType(element)) == false)
-            {
-                result["valid"] = false;
-                result["error"] = $"VisualElement type '{element.GetType().Name}' does not match expected type.";
-                result["actualType"] = element.GetType().Name;
-                result["actualName"] = element.name;
-                return result;
-            }
-
-            result["valid"] = true;
-            result["actualType"] = element.GetType().Name;
-            result["actualName"] = element.name;
-            result["classList"] = element.GetClasses().ToArray();
-            return result;
-        }
-
-        private static void ScanVisualElementPaths(object target, string owner,
-            List<VisualElementPathRecord> records, HashSet<object> visited, int depth,
-            VisualElementPathSettingsAttribute inheritedSettings)
-        {
-            if (target == null || depth > 5)
-            {
-                return;
-            }
-
-            Type targetType = target.GetType();
-            if (ShouldRecurseInto(targetType, allowUnityObjectRoot: depth == 0) == false)
-            {
-                return;
-            }
-
-            if (target is not ValueType && visited.Add(target) == false)
-            {
-                return;
-            }
-
-            foreach (var field in GetSerializableFields(targetType))
-            {
-                if (OdinConditionalFieldUtility.IsActive(target, field) == false)
-                {
-                    continue;
-                }
-
-                object value;
-                try
-                {
-                    value = field.GetValue(target);
-                }
-                catch
-                {
-                    continue;
-                }
-
-                var settings = field.GetCustomAttribute<VisualElementPathSettingsAttribute>() ?? inheritedSettings;
-                string member = field.Name;
-
-                if (value is VisualElementPath path)
-                {
-                    records.Add(new VisualElementPathRecord
-                    {
-                        owner = owner,
-                        member = member,
-                        path = path,
-                        required = IsVisualElementPathRequired(field),
-                        allowedTypes = GetAllowedTypes(settings)
-                    });
-                    continue;
-                }
-
-                // UnityEngine.Object instances can implement IEnumerable (Transform is the
-                // common case), but their serialized object graphs are not nested config data.
-                // Enumerating a missing/destroyed reference throws before ShouldRecurseInto can
-                // reject it, so stop at every non-root Unity object boundary.
-                if (value is Object)
-                {
-                    continue;
-                }
-
-                if (value is IEnumerable enumerable && value is not string)
-                {
-                    int index = 0;
-                    foreach (object item in enumerable)
-                    {
-                        if (item is VisualElementPath itemPath)
-                        {
-                            records.Add(new VisualElementPathRecord
-                            {
-                                owner = owner,
-                                member = $"{member}[{index}]",
-                                path = itemPath,
-                                required = IsVisualElementPathRequired(field),
-                                allowedTypes = GetAllowedTypes(settings)
-                            });
-                        }
-                        else
-                        {
-                            ScanVisualElementPaths(item, owner, records, visited, depth + 1, settings);
-                        }
-
-                        index++;
-                        if (index > 500)
-                        {
-                            break;
-                        }
-                    }
-
-                    continue;
-                }
-
-                ScanVisualElementPaths(value, owner, records, visited, depth + 1, settings);
-            }
-        }
-
-        private static bool IsVisualElementPathRequired(FieldInfo field)
-        {
-            return field.IsDefined(typeof(IsNotNullOrEmptyAttribute), true);
-        }
-
-        private static IEnumerable<FieldInfo> GetSerializableFields(Type type)
-        {
-            for (var current = type; current != null && current != typeof(object); current = current.BaseType)
-            {
-                if (current == typeof(MonoBehaviour) ||
-                    current == typeof(Behaviour) ||
-                    current == typeof(Component) ||
-                    current == typeof(Object))
-                {
-                    yield break;
-                }
-
-                foreach (var field in current.GetFields(BindingFlags.Instance | BindingFlags.Public |
-                                                        BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
-                {
-                    if (field.IsStatic)
-                    {
-                        continue;
-                    }
-
-                    if (field.IsPublic || field.GetCustomAttribute<SerializeField>() != null)
-                    {
-                        yield return field;
-                    }
-                }
-            }
-        }
-
-        private static bool ShouldRecurseInto(Type type, bool allowUnityObjectRoot = false)
-        {
-            if (type == null || type.IsPrimitive || type.IsEnum || type == typeof(string) ||
-                type == typeof(decimal))
-            {
-                return false;
-            }
-
-            if (typeof(Object).IsAssignableFrom(type))
-            {
-                return allowUnityObjectRoot && typeof(Component).IsAssignableFrom(type);
-            }
-
-            if (type == typeof(VisualElementPath))
-            {
-                return true;
-            }
-
-            string ns = type.Namespace ?? "";
-            if (ns.StartsWith("System", StringComparison.Ordinal) ||
-                ns.StartsWith("Unity", StringComparison.Ordinal) ||
-                ns.StartsWith("Microsoft", StringComparison.Ordinal) ||
-                ns.StartsWith("Sirenix", StringComparison.Ordinal) ||
-                ns.StartsWith("Newtonsoft", StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            return ns.Length > 0 || type.GetCustomAttribute<SerializableAttribute>() != null;
-        }
-
-        private static List<Type> GetAllowedTypes(VisualElementPathSettingsAttribute settings)
-        {
-            if (settings?.AllowedTypes == null)
-            {
-                return new List<Type> { typeof(VisualElement) };
-            }
-
-            return settings.AllowedTypes.Where(type => type != null).ToList();
-        }
-
-        private static VisualTreeAsset GetVisualTreeAsset(GameObject prefab)
-        {
-            var uiDocument = prefab == null ? null : prefab.GetComponentInChildren<UIDocument>(true);
-            return uiDocument == null ? null : uiDocument.visualTreeAsset;
-        }
-
-        private static void AddPropertyManagers(GameObject gameObject, ICollection<PropertyManager> managers,
+        internal static void AddPropertyManagers(GameObject gameObject, ICollection<PropertyManager> managers,
             bool includeChildren)
         {
             if (includeChildren)
@@ -1723,7 +596,7 @@ namespace VMFramework.MCP.Editor
             }
         }
 
-        private static GameObject FindSceneGameObject(string pathOrName)
+        internal static GameObject FindSceneGameObject(string pathOrName)
         {
             foreach (var root in GetSceneRoots())
             {
@@ -1742,7 +615,7 @@ namespace VMFramework.MCP.Editor
             return null;
         }
 
-        private static IEnumerable<GameObject> GetSceneRoots()
+        internal static IEnumerable<GameObject> GetSceneRoots()
         {
             for (int i = 0; i < SceneManager.sceneCount; i++)
             {
@@ -1759,7 +632,7 @@ namespace VMFramework.MCP.Editor
             }
         }
 
-        private static Dictionary<string, object> DescribeGamePrefabInfo(GamePrefabInfo info)
+        internal static Dictionary<string, object> DescribeGamePrefabInfo(GamePrefabInfo info)
         {
             return new Dictionary<string, object>
             {
@@ -1770,7 +643,7 @@ namespace VMFramework.MCP.Editor
             };
         }
 
-        private static Dictionary<string, object> DescribeGamePrefab(IGamePrefab gamePrefab)
+        internal static Dictionary<string, object> DescribeGamePrefab(IGamePrefab gamePrefab)
         {
             if (gamePrefab == null)
             {
@@ -1791,7 +664,7 @@ namespace VMFramework.MCP.Editor
             };
         }
 
-        private static Dictionary<string, object> DescribeWrapper(GamePrefabWrapper wrapper,
+        internal static Dictionary<string, object> DescribeWrapper(GamePrefabWrapper wrapper,
             bool includeGamePrefabs)
         {
             if (wrapper == null)
@@ -1820,7 +693,7 @@ namespace VMFramework.MCP.Editor
             return result;
         }
 
-        private static Dictionary<string, object> DescribeGeneralSetting(IGeneralSetting setting,
+        internal static Dictionary<string, object> DescribeGeneralSetting(IGeneralSetting setting,
             bool includeGamePrefabDetails)
         {
             if (setting == null)
@@ -1854,7 +727,7 @@ namespace VMFramework.MCP.Editor
             return result;
         }
 
-        private static List<Dictionary<string, object>> DescribeGamePrefabProviders(
+        internal static List<Dictionary<string, object>> DescribeGamePrefabProviders(
             IEnumerable<IGamePrefabsProvider> rawProviders, out int providerSlotCount, out int missingProviderCount)
         {
             var providers = new List<Dictionary<string, object>>();
@@ -1886,7 +759,7 @@ namespace VMFramework.MCP.Editor
             return providers;
         }
 
-        private static Dictionary<string, object> DescribeComponent(Component component)
+        internal static Dictionary<string, object> DescribeComponent(Component component)
         {
             return new Dictionary<string, object>
             {
@@ -1991,7 +864,7 @@ namespace VMFramework.MCP.Editor
             };
         }
 
-        private static Dictionary<string, object> DescribeRange(object range)
+        internal static Dictionary<string, object> DescribeRange(object range)
         {
             if (range == null)
             {
@@ -2008,7 +881,7 @@ namespace VMFramework.MCP.Editor
             };
         }
 
-        private static object ReadFieldOrProperty(object target, string memberName)
+        internal static object ReadFieldOrProperty(object target, string memberName)
         {
             var type = target.GetType();
             var field = type.GetField(memberName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
@@ -2021,7 +894,7 @@ namespace VMFramework.MCP.Editor
             return property == null ? null : property.GetValue(target);
         }
 
-        private static void ApplySerializedValues(object target, Dictionary<string, object> values)
+        internal static void ApplySerializedValues(object target, Dictionary<string, object> values)
         {
             foreach (var pair in values)
             {
@@ -2046,7 +919,7 @@ namespace VMFramework.MCP.Editor
             }
         }
 
-        private static bool TrySetProperty(object target, string memberName, object rawValue)
+        internal static bool TrySetProperty(object target, string memberName, object rawValue)
         {
             var property = target.GetType().GetProperty(memberName,
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
@@ -2066,7 +939,7 @@ namespace VMFramework.MCP.Editor
             return true;
         }
 
-        private static bool TrySetField(object target, string memberName, object rawValue)
+        internal static bool TrySetField(object target, string memberName, object rawValue)
         {
             var field = target.GetType().GetField(memberName,
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
@@ -2080,7 +953,7 @@ namespace VMFramework.MCP.Editor
             return true;
         }
 
-        private static object ConvertValue(object value, Type targetType, string memberName)
+        internal static object ConvertValue(object value, Type targetType, string memberName)
         {
             if (value == null)
             {
@@ -2147,7 +1020,7 @@ namespace VMFramework.MCP.Editor
                 $"Cannot convert value for '{memberName}' to '{targetType.FullName}'.");
         }
 
-        private static object ConvertUnityObject(object value, Type targetType, string memberName)
+        internal static object ConvertUnityObject(object value, Type targetType, string memberName)
         {
             if (value is not string assetPath || string.IsNullOrWhiteSpace(assetPath))
             {
@@ -2165,7 +1038,7 @@ namespace VMFramework.MCP.Editor
             return asset;
         }
 
-        private static bool TryConvertStringCollection(object value, Type targetType, out object collection)
+        internal static bool TryConvertStringCollection(object value, Type targetType, out object collection)
         {
             collection = null;
 
@@ -2184,7 +1057,7 @@ namespace VMFramework.MCP.Editor
             return false;
         }
 
-        private static IEnumerable<string> GetStringValues(object value)
+        internal static IEnumerable<string> GetStringValues(object value)
         {
             if (value is string str)
             {
@@ -2206,7 +1079,7 @@ namespace VMFramework.MCP.Editor
             }
         }
 
-        private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
+        internal static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
         {
             try
             {
@@ -2222,7 +1095,7 @@ namespace VMFramework.MCP.Editor
             }
         }
 
-        private static IEnumerable<T> SafeEnumerable<T>(Func<IEnumerable<T>> getter)
+        internal static IEnumerable<T> SafeEnumerable<T>(Func<IEnumerable<T>> getter)
         {
             IEnumerable<T> values;
             try
@@ -2240,7 +1113,7 @@ namespace VMFramework.MCP.Editor
             }
         }
 
-        private static T SafeGet<T>(Func<T> getter)
+        internal static T SafeGet<T>(Func<T> getter)
         {
             try
             {
@@ -2252,26 +1125,26 @@ namespace VMFramework.MCP.Editor
             }
         }
 
-        private static void RefreshGamePrefabRegistry()
+        internal static void RefreshGamePrefabRegistry()
         {
             AssetDatabase.Refresh();
             GamePrefabWrapperInitializeUtility.Refresh();
         }
 
-        private static bool MatchesFilter(string value, string filter)
+        internal static bool MatchesFilter(string value, string filter)
         {
             return string.IsNullOrWhiteSpace(filter) ||
                    (value != null && value.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
-        private static string CombineAssetPath(string folderPath, string assetName)
+        internal static string CombineAssetPath(string folderPath, string assetName)
         {
             folderPath = (folderPath ?? "").Replace("\\", "/").TrimEnd('/');
             assetName = (assetName ?? "").Replace("\\", "/").TrimStart('/');
             return $"{folderPath}/{assetName}";
         }
 
-        private static string ToPascalAssetName(string id)
+        internal static string ToPascalAssetName(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -2282,7 +1155,7 @@ namespace VMFramework.MCP.Editor
             return string.Join("", parts.Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1)));
         }
 
-        private static string GetAssetPath(Object obj)
+        internal static string GetAssetPath(Object obj)
         {
             return obj == null ? "" : AssetDatabase.GetAssetPath(obj);
         }
@@ -2305,7 +1178,7 @@ namespace VMFramework.MCP.Editor
             return string.Join("/", names);
         }
 
-        private static string GetRequiredString(Dictionary<string, object> args, string key)
+        internal static string GetRequiredString(Dictionary<string, object> args, string key)
         {
             string value = GetString(args, key);
             if (string.IsNullOrWhiteSpace(value))
@@ -2316,7 +1189,7 @@ namespace VMFramework.MCP.Editor
             return value;
         }
 
-        private static string GetString(Dictionary<string, object> args, string key)
+        internal static string GetString(Dictionary<string, object> args, string key)
         {
             if (args.TryGetValue(key, out object value) == false || value == null)
             {
@@ -2326,7 +1199,7 @@ namespace VMFramework.MCP.Editor
             return value.ToString();
         }
 
-        private static bool GetBool(Dictionary<string, object> args, string key, bool defaultValue)
+        internal static bool GetBool(Dictionary<string, object> args, string key, bool defaultValue)
         {
             if (args.TryGetValue(key, out object value) == false || value == null)
             {
@@ -2336,7 +1209,7 @@ namespace VMFramework.MCP.Editor
             return Convert.ToBoolean(value, CultureInfo.InvariantCulture);
         }
 
-        private static int GetInt(Dictionary<string, object> args, string key, int defaultValue)
+        internal static int GetInt(Dictionary<string, object> args, string key, int defaultValue)
         {
             if (args.TryGetValue(key, out object value) == false || value == null)
             {
@@ -2346,12 +1219,12 @@ namespace VMFramework.MCP.Editor
             return Convert.ToInt32(value, CultureInfo.InvariantCulture);
         }
 
-        private static int GetOffset(Dictionary<string, object> args)
+        internal static int GetOffset(Dictionary<string, object> args)
         {
             return Math.Max(0, GetInt(args, "offset", 0));
         }
 
-        private static Dictionary<string, object> GetDictionary(Dictionary<string, object> args, string key)
+        internal static Dictionary<string, object> GetDictionary(Dictionary<string, object> args, string key)
         {
             if (args.TryGetValue(key, out object value) == false || value == null)
             {
@@ -2361,53 +1234,26 @@ namespace VMFramework.MCP.Editor
             return value as Dictionary<string, object>;
         }
 
-        private sealed class PanelSource
+        internal static List<Dictionary<string, object>> GetDictionaryListValue(
+            IReadOnlyDictionary<string, object> args, string key)
         {
-            public string panelID;
-            public UIPanelConfig config;
-            public GameObject prefab;
-            public GamePrefabWrapper wrapper;
+            if (!args.TryGetValue(key, out object raw))
+            {
+                return new List<Dictionary<string, object>>();
+            }
+
+            return ((IEnumerable)raw).Cast<object>()
+                .Cast<Dictionary<string, object>>()
+                .ToList();
         }
 
-        private sealed class PanelValidationResult
-        {
-            public string error;
-            public VisualTreeAsset visualTree;
-            public int checkedCount;
-            public int invalidCount;
-            public readonly List<Dictionary<string, object>> reportedPaths = new();
-        }
-
-        private sealed class GamePrefabInfo
+        internal sealed class GamePrefabInfo
         {
             public GamePrefabWrapper wrapper;
             public string wrapperPath;
             public IGamePrefab gamePrefab;
         }
 
-        private sealed class VisualElementPathRecord
-        {
-            public string owner;
-            public string member;
-            public VisualElementPath path;
-            public bool required;
-            public List<Type> allowedTypes;
-        }
-
-        private sealed class ReferenceEqualityComparer : IEqualityComparer<object>
-        {
-            public static readonly ReferenceEqualityComparer Instance = new();
-
-            public new bool Equals(object x, object y)
-            {
-                return ReferenceEquals(x, y);
-            }
-
-            public int GetHashCode(object obj)
-            {
-                return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
-            }
-        }
     }
 }
 #endif

@@ -149,8 +149,7 @@ namespace VMFramework.MCP.Editor
             "ui_panel_wait_timeout",
         },
         MutatesRuntime = true,
-        RequiresPlayMode = true,
-        FirstClass = true)]
+        RequiresPlayMode = true)]
     public sealed class VMFrameworkRuntimeUIPanelTool : IMCPPersistentProjectTool
     {
         private const string ToolName = "vmframework/runtime-ui-panel";

@@ -29,8 +29,7 @@ namespace VMFramework.MCP.Editor
             "reference_trace_kind_mismatch",
             "persistent_job_required",
         },
-        ReadOnly = true,
-        FirstClass = true)]
+        ReadOnly = true)]
     public sealed class VMFrameworkReferenceTraceTool : IMCPPersistentProjectTool
     {
         private static readonly string[] ReverseReferenceExtensions =
@@ -673,7 +672,7 @@ namespace VMFramework.MCP.Editor
                 { "limit", 2 },
             };
             Dictionary<string, object> result =
-                VMFrameworkMcpTools.ListGameTags(args) as
+                VMFrameworkMcpGameTagTools.ListGameTags(args) as
                     Dictionary<string, object>;
             if (result != null &&
                 result.TryGetValue("tags", out object tagsValue) &&

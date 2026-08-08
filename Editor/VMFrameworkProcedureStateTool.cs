@@ -25,8 +25,7 @@ namespace VMFramework.MCP.Editor
             "procedure_wait_timeout",
         },
         ReadOnly = true,
-        RequiresPlayMode = true,
-        FirstClass = true)]
+        RequiresPlayMode = true)]
     public sealed class VMFrameworkProcedureStateTool : IMCPPersistentProjectTool
     {
         private const string ToolName = "vmframework/procedure-state";

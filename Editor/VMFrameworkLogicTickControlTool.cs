@@ -25,8 +25,7 @@ namespace VMFramework.MCP.Editor
             "logic_tick_wait_timeout",
         },
         MutatesRuntime = true,
-        RequiresPlayMode = true,
-        FirstClass = true)]
+        RequiresPlayMode = true)]
     public sealed class VMFrameworkLogicTickControlTool : IMCPPersistentProjectTool
     {
         private const int MaximumDirectAdvance = 32;

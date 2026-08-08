@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.0.0
+
+- Migrate all 27 VMFramework tools to VM Unity MCP 6's canonical direct-route
+  catalog. Remove first-class flags and the three-stage project-tool contract;
+  each tool is now searched, exactly activated, and called as a typed tool.
+- Split the former monolithic tool class into configuration, GamePrefab,
+  GameTag, property, and UI-panel owners. Extract UI-panel inspection and
+  validation into `VMFrameworkUIPanelMcpTools`.
+- Add `VMFrameworkGamePrefabAuthoring` and its typed request as the reusable
+  asset-authoring authority. Project consumers can compose it directly instead
+  of invoking one MCP tool through a string-based generic executor.
+- Keep the public extension surface semantically neutral: project tools declare
+  module/capability/operation/search metadata through VM Unity MCP, while
+  project-specific gameplay meanings remain in consumer adapters.
+- Update catalog/schema tests for direct routes, normalized operation metadata,
+  strict descriptions, package-level regression categories, and the new class
+  ownership boundaries.
+
 ## 2.3.3
 
 - Fix `vmframework/update-game-prefab` transactions that rename the root ID:

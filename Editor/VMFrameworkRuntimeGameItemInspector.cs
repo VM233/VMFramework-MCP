@@ -335,8 +335,7 @@ namespace VMFramework.MCP.Editor
                 "runtime_game_item_domain_adapter_ambiguous",
             },
             ReadOnly = true,
-            RequiresPlayMode = true,
-            FirstClass = true)]
+            RequiresPlayMode = true)]
         public static object Execute(Dictionary<string, object> args)
         {
             if (!Application.isPlaying)

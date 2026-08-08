@@ -4,7 +4,7 @@ using UnityMCP.Editor;
 
 namespace VMFramework.MCP.Editor
 {
-    public static partial class VMFrameworkMcpTools
+    public static class VMFrameworkMcpConfigurationTool
     {
         private const string GET_CONFIGURATION_TOOL_NAME = "vmframework/get-configuration";
         private const string EMPTY_INPUT_SCHEMA =

@@ -373,7 +373,7 @@ namespace VMFramework.MCP.Editor
                 }
 
                 Type valueType = GetPropertyValueType(readOnlyProperty);
-                object converted = VMFrameworkMcpTools.ConvertSerializedValue(
+                object converted = VMFrameworkMcpGamePrefabTools.ConvertSerializedValue(
                     pair.Value, valueType, pair.Key);
                 property.SetObjectValue(converted, initial: false);
             }
@@ -682,8 +682,7 @@ namespace VMFramework.MCP.Editor
                 "runtime_game_item_session_cleanup_failed",
             },
             MutatesRuntime = true,
-            RequiresPlayMode = true,
-            FirstClass = true)]
+            RequiresPlayMode = true)]
         public static object Execute(Dictionary<string, object> args)
         {
             args ??= new Dictionary<string, object>();

@@ -10,6 +10,7 @@ using UnityMCP.Editor;
 
 namespace VMFramework.MCP.Editor.Tests
 {
+    [Category("VMFrameworkMCP.FullRegression")]
     public class VMFrameworkMcpContractTests
     {
         private static readonly string[] ExpectedToolNames =
@@ -43,7 +44,7 @@ namespace VMFramework.MCP.Editor.Tests
             "vmframework/validate-visual-element-paths",
         };
 
-        private static readonly HashSet<string> ExpectedFirstClassToolNames =
+        private static readonly HashSet<string> ExpectedSchemaEnforcedToolNames =
             new(StringComparer.Ordinal)
             {
                 "vmframework/inspect-runtime-game-item",
@@ -55,7 +56,7 @@ namespace VMFramework.MCP.Editor.Tests
             };
 
         [Test]
-        public void ProjectToolCatalog_IsCompleteStrictAndThreeStage()
+        public void ProjectToolCatalog_IsCompleteStrictAndCanonical()
         {
             var tools = MCPProjectToolCommands.GetToolDetails(false)
                 .Where(tool => GetString(tool, "toolName").StartsWith(
@@ -83,9 +84,11 @@ namespace VMFramework.MCP.Editor.Tests
                         $"{toolName} still exposes legacy boolean metadata '{retiredKey}'.");
                 }
                 Assert.That(HasTag(tool, "invalid"), Is.False, toolName);
-                Assert.That(HasTag(tool, "firstClass"),
-                    Is.EqualTo(ExpectedFirstClassToolNames.Contains(toolName)),
-                    $"{toolName} has the wrong direct-exposure contract.");
+                Assert.That(tool["executeRoute"],
+                    Is.EqualTo(MCPProjectToolCommands.GetDirectRoute(toolName)), toolName);
+                Assert.That(tool["moduleId"], Is.EqualTo("vmframework"), toolName);
+                Assert.That(tool["capability"].ToString(), Is.Not.Empty, toolName);
+                Assert.That(tool["operationKind"].ToString(), Is.Not.Empty, toolName);
 
                 int operationKinds =
                     (HasTag(tool, "readOnly") ? 1 : 0) +
@@ -98,7 +101,7 @@ namespace VMFramework.MCP.Editor.Tests
                 Assert.That(schema["additionalProperties"], Is.EqualTo(false),
                     $"{toolName} must reject unknown business arguments.");
 
-                if (ExpectedFirstClassToolNames.Contains(toolName))
+                if (ExpectedSchemaEnforcedToolNames.Contains(toolName))
                 {
                     Assert.That(HasTag(tool, "outputSchema"), Is.True,
                         $"{toolName} must provide and enforce outputSchema.");
@@ -211,27 +214,27 @@ namespace VMFramework.MCP.Editor.Tests
             Assert.That(((IList)validationSchema["oneOf"]).Count, Is.EqualTo(3));
 
             Assert.Throws<ArgumentException>(() =>
-                VMFrameworkMcpTools.InspectUIPanel(new Dictionary<string, object>()));
+                VMFrameworkUIPanelMcpTools.InspectUIPanel(new Dictionary<string, object>()));
             Assert.Throws<ArgumentException>(() =>
-                VMFrameworkMcpTools.InspectBindObjects(new Dictionary<string, object>()));
+                VMFrameworkUIPanelMcpTools.InspectBindObjects(new Dictionary<string, object>()));
             Assert.Throws<ArgumentException>(() =>
-                VMFrameworkMcpTools.InspectContainerPanel(new Dictionary<string, object>()));
+                VMFrameworkUIPanelMcpTools.InspectContainerPanel(new Dictionary<string, object>()));
             Assert.Throws<ArgumentException>(() =>
-                VMFrameworkMcpTools.ValidateVisualElementPaths(new Dictionary<string, object>()));
+                VMFrameworkUIPanelMcpTools.ValidateVisualElementPaths(new Dictionary<string, object>()));
             Assert.Throws<ArgumentException>(() =>
-                VMFrameworkMcpTools.InspectUIPanel(new Dictionary<string, object>
+                VMFrameworkUIPanelMcpTools.InspectUIPanel(new Dictionary<string, object>
                 {
                     { "panelID", "panel" },
                     { "prefabPath", "Assets/Panel.prefab" }
                 }));
             Assert.Throws<ArgumentException>(() =>
-                VMFrameworkMcpTools.ValidateVisualElementPaths(new Dictionary<string, object>
+                VMFrameworkUIPanelMcpTools.ValidateVisualElementPaths(new Dictionary<string, object>
                 {
                     { "allPanels", true },
                     { "panelID", "panel" }
                 }));
             Assert.Throws<ArgumentException>(() =>
-                VMFrameworkMcpTools.ValidateVisualElementPaths(new Dictionary<string, object>
+                VMFrameworkUIPanelMcpTools.ValidateVisualElementPaths(new Dictionary<string, object>
                 {
                     { "allPanels", false },
                     { "panelID", "panel" }
@@ -242,7 +245,7 @@ namespace VMFramework.MCP.Editor.Tests
         public void ValidateVisualElementPaths_AllPanels_ReturnsBoundedAggregate()
         {
             var result = RequireDictionary(
-                VMFrameworkMcpTools.ValidateVisualElementPaths(new Dictionary<string, object>
+                VMFrameworkUIPanelMcpTools.ValidateVisualElementPaths(new Dictionary<string, object>
                 {
                     { "allPanels", true },
                     { "limit", 1 }
@@ -293,7 +296,7 @@ namespace VMFramework.MCP.Editor.Tests
                 Assert.That(missingTranslations.GetValue(null), Is.EqualTo(false));
                 Assert.That(prefabReferences.GetValue(null), Is.EqualTo(true));
                 var snapshot = RequireDictionary(
-                    VMFrameworkMcpTools.GetConfiguration(
+                    VMFrameworkMcpConfigurationTool.GetConfiguration(
                         new Dictionary<string, object>()));
                 var projectSettings = RequireDictionary(snapshot["projectSettings"]);
                 Assert.That(projectSettings.ContainsKey("error"), Is.False);

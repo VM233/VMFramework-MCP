@@ -12,10 +12,11 @@ using UnityEngine.Localization.Tables;
 using UnityMCP.Editor;
 using VMFramework.Core;
 using VMFramework.GameLogicArchitecture;
+using static VMFramework.MCP.Editor.VMFrameworkMcpTools;
 
 namespace VMFramework.MCP.Editor
 {
-    public static partial class VMFrameworkMcpTools
+    public static class VMFrameworkMcpGameTagTools
     {
         private const string LIST_GAME_TAGS_TOOL_NAME = "vmframework/list-game-tags";
         private const string UPSERT_GAME_TAG_TOOL_NAME = "vmframework/upsert-game-tag";

@@ -6,12 +6,14 @@ using UnityEditor;
 using UnityEngine;
 using UnityMCP.Editor;
 using VMFramework.Properties;
+using static VMFramework.MCP.Editor.VMFrameworkMcpGamePrefabTools;
+using static VMFramework.MCP.Editor.VMFrameworkMcpTools;
 using Object = UnityEngine.Object;
 
 namespace VMFramework.MCP.Editor
 {
     [InitializeOnLoad]
-    public static partial class VMFrameworkMcpTools
+    public static class VMFrameworkMcpPropertyTools
     {
         private const string GET_PROPERTY_TOOL_NAME = "vmframework/get-property";
         private const string SET_PROPERTY_TOOL_NAME = "vmframework/set-property";
@@ -60,7 +62,7 @@ namespace VMFramework.MCP.Editor
         private static long propertyTraceSequence;
         private static bool propertyTraceActive;
 
-        static VMFrameworkMcpTools()
+        static VMFrameworkMcpPropertyTools()
         {
             EditorApplication.playModeStateChanged -= OnPropertyTracePlayModeChanged;
             EditorApplication.playModeStateChanged += OnPropertyTracePlayModeChanged;

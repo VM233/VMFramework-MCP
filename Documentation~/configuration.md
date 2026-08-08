@@ -1,10 +1,9 @@
 # VMFramework MCP configuration and project-tool audit
 
 This document is the configuration review for the 27-tool VMFramework MCP
-project-tool catalog. The tool-catalog regression test owns the exact list,
-requires one operation kind per tool, requires strict root schemas, and keeps
-every tool behind Unity MCP's `list -> get -> execute` project-extension
-contract.
+catalog. The tool-catalog regression test owns the exact list, requires one
+operation kind per tool, requires strict schemas, and publishes every valid
+tool at its canonical `project-tools/call/vmframework/...` direct route.
 
 ## Ownership and precedence
 
@@ -112,6 +111,10 @@ from their owning VMFramework GeneralSettings.
   validation is opt-in or obtained from `validate-game-tags`.
 - GameTag validation replies include the effective coverage flags so callers
   can distinguish team defaults from an explicitly narrowed audit.
-- VM Unity MCP 5.5.1 or newer preserves `inputSchema` and `outputSchema`
+- VM Unity MCP 6.0.0 or newer preserves `inputSchema` and `outputSchema`
   verbatim, so the reference trace's business `tags` property remains an array
   of tag records rather than being interpreted as capability metadata.
+- Catalog selection uses module `vmframework`, capability nouns derived from
+  tool names or explicit metadata, and normalized `inspect`, `mutate`, or `job`
+  operation kinds. Exact schemas are loaded only when the client activates one
+  typed tool.

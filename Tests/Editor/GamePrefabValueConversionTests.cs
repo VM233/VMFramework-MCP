@@ -11,6 +11,7 @@ using VMFramework.GameLogicArchitecture;
 
 namespace VMFramework.MCP.Editor.Tests
 {
+    [Category("VMFrameworkMCP.FullRegression")]
     public sealed class GamePrefabValueConversionTests
     {
         private sealed class CollectionFixture
@@ -43,7 +44,7 @@ namespace VMFramework.MCP.Editor.Tests
         [Test]
         public void StructuredLocalizedString_IsConvertedBeforeEnumerableHandling()
         {
-            MethodInfo convert = typeof(VMFrameworkMcpTools).GetMethod("ConvertSerializedValue",
+            MethodInfo convert = typeof(VMFrameworkMcpGamePrefabTools).GetMethod("ConvertSerializedValue",
                 BindingFlags.Static | BindingFlags.NonPublic);
             Assert.That(convert, Is.Not.Null);
 
@@ -146,7 +147,7 @@ namespace VMFramework.MCP.Editor.Tests
         [Test]
         public void ListValues_StillUseCollectionConversion()
         {
-            MethodInfo convert = typeof(VMFrameworkMcpTools).GetMethod("ConvertSerializedValue",
+            MethodInfo convert = typeof(VMFrameworkMcpGamePrefabTools).GetMethod("ConvertSerializedValue",
                 BindingFlags.Static | BindingFlags.NonPublic);
             Assert.That(convert, Is.Not.Null);
 
@@ -251,7 +252,7 @@ namespace VMFramework.MCP.Editor.Tests
 
             try
             {
-                var result = (Dictionary<string, object>)VMFrameworkMcpTools.UpdateGamePrefab(
+                var result = (Dictionary<string, object>)VMFrameworkMcpGamePrefabTools.UpdateGamePrefab(
                     new Dictionary<string, object>
                     {
                         { "id", oldId },
@@ -290,7 +291,7 @@ namespace VMFramework.MCP.Editor.Tests
 
         private static MethodInfo GetPrivateMethod(string name)
         {
-            MethodInfo method = typeof(VMFrameworkMcpTools).GetMethod(name,
+            MethodInfo method = typeof(VMFrameworkMcpGamePrefabTools).GetMethod(name,
                 BindingFlags.Static | BindingFlags.NonPublic);
             Assert.That(method, Is.Not.Null);
             return method;

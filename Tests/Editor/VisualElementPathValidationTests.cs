@@ -10,6 +10,7 @@ using VMFramework.UI;
 
 namespace VMFramework.MCP.Editor.Tests
 {
+    [Category("VMFrameworkMCP.FullRegression")]
     public sealed class VisualElementPathValidationTests
     {
         private sealed class Fixture
@@ -29,7 +30,7 @@ namespace VMFramework.MCP.Editor.Tests
         [Test]
         public void EmptyPath_IsValidOnlyWhenFieldIsOptional()
         {
-            Type toolsType = typeof(VMFrameworkMcpTools);
+            Type toolsType = typeof(VMFrameworkUIPanelMcpTools);
             MethodInfo isRequired = toolsType.GetMethod("IsVisualElementPathRequired",
                 BindingFlags.Static | BindingFlags.NonPublic);
             MethodInfo validate = toolsType.GetMethod("ValidateVisualElementPath",
@@ -67,7 +68,7 @@ namespace VMFramework.MCP.Editor.Tests
         [Test]
         public void ScanVisualElementPaths_DoesNotEnumerateMissingUnityObjectReferences()
         {
-            Type toolsType = typeof(VMFrameworkMcpTools);
+            Type toolsType = typeof(VMFrameworkUIPanelMcpTools);
             MethodInfo scan = toolsType.GetMethod("ScanVisualElementPaths",
                 BindingFlags.Static | BindingFlags.NonPublic);
             Type recordType = toolsType.GetNestedType("VisualElementPathRecord", BindingFlags.NonPublic);
@@ -98,7 +99,7 @@ namespace VMFramework.MCP.Editor.Tests
         [Test]
         public void ScanVisualElementPaths_SkipsInactiveOdinConditionalFields()
         {
-            Type toolsType = typeof(VMFrameworkMcpTools);
+            Type toolsType = typeof(VMFrameworkUIPanelMcpTools);
             MethodInfo scan = toolsType.GetMethod("ScanVisualElementPaths",
                 BindingFlags.Static | BindingFlags.NonPublic);
             Type recordType = toolsType.GetNestedType("VisualElementPathRecord", BindingFlags.NonPublic);
